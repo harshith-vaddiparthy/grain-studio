@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Grain Studio editor design reference</title>
+  <desc id="desc">A dark tactile image texture editor with an image canvas, adjustment rail, compact toolbar, and magnifying texture dock.</desc>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#ffffff" stroke-opacity=".035"/>
+      <circle cx="1" cy="1" r=".8" fill="#ffffff" fill-opacity=".08"/>
+    </pattern>
+    <pattern id="grain" width="11" height="11" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="3" r="1" fill="#d7ff59" fill-opacity=".5"/>
+      <circle cx="8" cy="7" r=".7" fill="#fff" fill-opacity=".25"/>
+      <path d="M0 10L10 0" stroke="#111" stroke-opacity=".25"/>
+    </pattern>
+    <linearGradient id="photo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8e4c5"/>
+      <stop offset=".32" stop-color="#4a8675"/>
+      <stop offset=".58" stop-color="#b66345"/>
+      <stop offset="1" stop-color="#171b1a"/>
+    </linearGradient>
+    <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#242521"/>
+      <stop offset="1" stop-color="#171816"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="30" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <filter id="smallShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity=".35"/>
+    </filter>
+    <clipPath id="imageClip"><rect x="190" y="124" width="1010" height="710" rx="18"/></clipPath>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#0d0e0c"/>
+  <rect width="1600" height="1000" fill="url(#grid)"/>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <g transform="translate(34 24)">
+      <rect width="1532" height="64" rx="16" fill="#171815" stroke="#31332d"/>
+      <rect x="16" y="14" width="36" height="36" rx="10" fill="#d7ff59"/>
+      <path d="M28 24h12l6 6v12H34l-6-6zM33 29h8v8h-8z" fill="#11120f"/>
+      <text x="68" y="29" fill="#f1f2ea" font-size="15" font-weight="700" letter-spacing="1.8">GRAIN STUDIO</text>
+      <text x="68" y="46" fill="#7f8278" font-size="10" letter-spacing="1.4">OPEN IMAGE TEXTURE WORKBENCH</text>
+
+      <g transform="translate(618 12)">
+        <rect width="296" height="40" rx="11" fill="#10110f" stroke="#2b2d28"/>
+        <rect x="4" y="4" width="92" height="32" rx="8" fill="#2b2d27"/>
+        <text x="50" y="24" fill="#eff0e9" text-anchor="middle" font-size="11">EDIT</text>
+        <text x="148" y="24" fill="#85877f" text-anchor="middle" font-size="11">COMPARE</text>
+        <text x="245" y="24" fill="#85877f" text-anchor="middle" font-size="11">EXPORT</text>
+      </g>
+
+      <g transform="translate(1198 12)">
+        <rect width="116" height="40" rx="11" fill="#20211d" stroke="#343630"/>
+        <circle cx="22" cy="20" r="4" fill="#65d89a"/>
+        <text x="68" y="24" fill="#ced0c7" text-anchor="middle" font-size="11">LOCAL ONLY</text>
+      </g>
+      <g transform="translate(1324 12)">
+        <rect width="190" height="40" rx="11" fill="#d7ff59"/>
+        <text x="95" y="24" fill="#141510" text-anchor="middle" font-size="12" font-weight="700">EXPORT IMAGE</text>
+      </g>
+    </g>
+
+    <g transform="translate(34 106)">
+      <rect width="130" height="736" rx="16" fill="#151613" stroke="#2b2d28"/>
+      <text x="20" y="31" fill="#7f8278" font-size="9" letter-spacing="1.5">SOURCE</text>
+      <rect x="14" y="48" width="102" height="76" rx="12" fill="#20211d" stroke="#343630"/>
+      <path d="M45 85h40M65 65v40" stroke="#d7ff59" stroke-width="2" stroke-linecap="round"/>
+      <text x="65" y="146" fill="#d7d9d1" text-anchor="middle" font-size="11">Replace</text>
+      <line x1="16" x2="114" y1="170" y2="170" stroke="#2a2c27"/>
+      <text x="20" y="201" fill="#7f8278" font-size="9" letter-spacing="1.5">IMAGE</text>
+      <text x="20" y="228" fill="#e5e6de" font-size="12">sample.jpg</text>
+      <text x="20" y="249" fill="#777a71" font-size="10">2400 × 1600</text>
+      <text x="20" y="270" fill="#777a71" font-size="10">3.8 MB</text>
+      <line x1="16" x2="114" y1="302" y2="302" stroke="#2a2c27"/>
+      <text x="20" y="333" fill="#7f8278" font-size="9" letter-spacing="1.5">HISTORY</text>
+      <g fill="#c6c8c0" font-size="10">
+        <text x="20" y="362">03  Grain</text>
+        <text x="20" y="390">02  Contrast</text>
+        <text x="20" y="418">01  Upload</text>
+      </g>
+      <text x="20" y="697" fill="#696c64" font-size="9">⌘ O  OPEN</text>
+      <text x="20" y="718" fill="#696c64" font-size="9">⌘ S  EXPORT</text>
+    </g>
+
+    <g filter="url(#softShadow)">
+      <rect x="186" y="120" width="1018" height="718" rx="22" fill="#050605" stroke="#33352f" stroke-width="2"/>
+      <g clip-path="url(#imageClip)">
+        <rect x="190" y="124" width="1010" height="710" fill="url(#photo)"/>
+        <path d="M190 630C360 510 520 548 680 422S1000 256 1200 310V834H190Z" fill="#121614" fill-opacity=".64"/>
+        <path d="M190 730C380 585 520 690 732 505S1040 400 1200 430V834H190Z" fill="#d7ff59" fill-opacity=".19"/>
+        <circle cx="493" cy="385" r="138" fill="#e6d6b7" fill-opacity=".34"/>
+        <circle cx="508" cy="390" r="90" fill="#121614" fill-opacity=".5"/>
+        <rect x="190" y="124" width="505" height="710" fill="url(#grain)" opacity=".62"/>
+        <line x1="695" y1="124" x2="695" y2="834" stroke="#f4f5ee" stroke-width="2"/>
+        <circle cx="695" cy="479" r="20" fill="#f4f5ee"/>
+        <path d="M689 473l-6 6 6 6M701 473l6 6-6 6" fill="none" stroke="#171815" stroke-width="1.5"/>
+      </g>
+    </g>
+    <g transform="translate(208 142)">
+      <rect width="98" height="32" rx="9" fill="#0f100e" fill-opacity=".78" stroke="#ffffff" stroke-opacity=".12"/>
+      <text x="49" y="20" fill="#e9eae3" text-anchor="middle" font-size="10" letter-spacing="1">RISO GRAIN</text>
+    </g>
+    <g transform="translate(1037 785)">
+      <rect width="142" height="32" rx="9" fill="#0f100e" fill-opacity=".78" stroke="#ffffff" stroke-opacity=".12"/>
+      <text x="71" y="20" fill="#b6b9b0" text-anchor="middle" font-size="10">50% COMPARE</text>
+    </g>
+
+    <g transform="translate(1226 106)">
+      <rect width="340" height="736" rx="16" fill="url(#rail)" stroke="#30322c"/>
+      <text x="24" y="35" fill="#82857b" font-size="9" letter-spacing="1.6">MATERIAL</text>
+      <text x="24" y="72" fill="#f1f2ea" font-size="26" font-weight="600">Riso Grain</text>
+      <text x="24" y="99" fill="#898c82" font-size="12">Two-ink print texture with paper bleed.</text>
+      <line x1="24" x2="316" y1="126" y2="126" stroke="#343630"/>
+
+      <g transform="translate(24 154)">
+        <text x="0" y="0" fill="#b6b9b0" font-size="11">Intensity</text><text x="292" y="0" fill="#e8e9e1" text-anchor="end" font-size="11">82</text>
+        <rect y="18" width="292" height="8" rx="4" fill="#0c0d0b"/>
+        <rect y="18" width="239" height="8" rx="4" fill="#d7ff59"/>
+        <circle cx="239" cy="22" r="9" fill="#f4f5ee" stroke="#11120f" stroke-width="3"/>
+      </g>
+      <g transform="translate(24 224)">
+        <text x="0" y="0" fill="#b6b9b0" font-size="11">Detail</text><text x="292" y="0" fill="#e8e9e1" text-anchor="end" font-size="11">64</text>
+        <rect y="18" width="292" height="8" rx="4" fill="#0c0d0b"/>
+        <rect y="18" width="187" height="8" rx="4" fill="#d7ff59"/>
+        <circle cx="187" cy="22" r="9" fill="#f4f5ee" stroke="#11120f" stroke-width="3"/>
+      </g>
+      <g transform="translate(24 294)">
+        <text x="0" y="0" fill="#b6b9b0" font-size="11">Contrast</text><text x="292" y="0" fill="#e8e9e1" text-anchor="end" font-size="11">57</text>
+        <rect y="18" width="292" height="8" rx="4" fill="#0c0d0b"/>
+        <rect y="18" width="166" height="8" rx="4" fill="#d7ff59"/>
+        <circle cx="166" cy="22" r="9" fill="#f4f5ee" stroke="#11120f" stroke-width="3"/>
+      </g>
+      <g transform="translate(24 364)">
+        <text x="0" y="0" fill="#b6b9b0" font-size="11">Scale</text><text x="292" y="0" fill="#e8e9e1" text-anchor="end" font-size="11">12 px</text>
+        <rect y="18" width="292" height="8" rx="4" fill="#0c0d0b"/>
+        <rect y="18" width="132" height="8" rx="4" fill="#d7ff59"/>
+        <circle cx="132" cy="22" r="9" fill="#f4f5ee" stroke="#11120f" stroke-width="3"/>
+      </g>
+      <line x1="24" x2="316" y1="432" y2="432" stroke="#343630"/>
+      <text x="24" y="464" fill="#82857b" font-size="9" letter-spacing="1.6">INK PALETTE</text>
+      <g transform="translate(24 485)">
+        <rect width="62" height="44" rx="11" fill="#d7ff59" stroke="#e8ff99"/>
+        <circle cx="23" cy="22" r="9" fill="#173c37"/><circle cx="40" cy="22" r="9" fill="#cf533e"/>
+        <rect x="72" width="62" height="44" rx="11" fill="#252721" stroke="#41433c"/>
+        <circle cx="95" cy="22" r="9" fill="#244fc7"/><circle cx="112" cy="22" r="9" fill="#e5d6b7"/>
+        <rect x="144" width="62" height="44" rx="11" fill="#252721" stroke="#41433c"/>
+        <circle cx="167" cy="22" r="9" fill="#10110f"/><circle cx="184" cy="22" r="9" fill="#eee9dd"/>
+      </g>
+      <line x1="24" x2="316" y1="562" y2="562" stroke="#343630"/>
+      <rect x="24" y="592" width="292" height="48" rx="11" fill="#272923" stroke="#3b3d35"/>
+      <text x="146" y="621" fill="#e7e8e0" text-anchor="middle" font-size="11">RESET MATERIAL</text>
+      <rect x="24" y="652" width="292" height="56" rx="11" fill="#d7ff59" filter="url(#smallShadow)"/>
+      <text x="146" y="685" fill="#11120f" text-anchor="middle" font-size="12" font-weight="700">DOWNLOAD PNG</text>
+    </g>
+
+    <g transform="translate(310 862)" filter="url(#smallShadow)">
+      <rect width="980" height="106" rx="22" fill="#161714" fill-opacity=".94" stroke="#363831"/>
+      <g transform="translate(18 18)">
+        <g transform="translate(0 0)"><rect width="70" height="70" rx="14" fill="#d7ff59"/><path d="M13 57L57 13M13 42L42 13M28 57L57 28" stroke="#1b1d18" stroke-width="4"/><rect x="-3" y="-3" width="76" height="76" rx="17" fill="none" stroke="#e8ff99" stroke-width="2"/></g>
+        <g transform="translate(80 6)"><rect width="58" height="58" rx="12" fill="#dfd6bc"/><text x="29" y="36" fill="#183b37" text-anchor="middle" font-family="monospace" font-size="18">@#%</text></g>
+        <g transform="translate(148 6)"><rect width="58" height="58" rx="12" fill="#d75a43"/><circle cx="18" cy="20" r="8" fill="#173d3a"/><circle cx="39" cy="38" r="10" fill="#e4b744"/></g>
+        <g transform="translate(216 6)"><rect width="58" height="58" rx="12" fill="#e7e2d7"/><path d="M0 9h58M0 20h58M0 31h58M0 42h58M0 53h58" stroke="#1a1c19" stroke-width="2"/></g>
+        <g transform="translate(284 6)"><rect width="58" height="58" rx="12" fill="#163c86"/><circle cx="17" cy="18" r="3" fill="#eff1df"/><circle cx="39" cy="38" r="6" fill="#eff1df"/></g>
+        <g transform="translate(352 6)"><rect width="58" height="58" rx="12" fill="#457c6d"/><path d="M0 58L58 0M-12 42L42-12M16 70L70 16" stroke="#dce6ce" stroke-width="3"/></g>
+        <g transform="translate(420 6)"><rect width="58" height="58" rx="12" fill="#d7cdb4"/><circle cx="15" cy="17" r="3" fill="#172f2a"/><circle cx="31" cy="32" r="5" fill="#172f2a"/><circle cx="47" cy="45" r="7" fill="#172f2a"/></g>
+        <g transform="translate(488 6)"><rect width="58" height="58" rx="12" fill="#d7cdb4"/><path d="M0 0L58 58M58 0L0 58" stroke="#b8523f" stroke-width="3"/></g>
+        <g transform="translate(556 6)"><rect width="58" height="58" rx="12" fill="#111"/><rect x="5" y="5" width="20" height="20" fill="#d5a23e"/><rect x="29" y="29" width="24" height="24" fill="#b74f3c"/></g>
+        <g transform="translate(624 6)"><rect width="58" height="58" rx="12" fill="#d7cdb4"/><path d="M8 8h18v18H8zM32 32h18v18H32z" fill="#193d38"/></g>
+        <g transform="translate(692 6)"><rect width="58" height="58" rx="12" fill="#e8e0ce"/><path d="M8 48L48 8M22 54L54 22" stroke="#1d403b" stroke-width="2"/></g>
+        <g transform="translate(760 6)"><rect width="58" height="58" rx="12" fill="#123b70"/><path d="M8 43C19 10 36 52 50 13" fill="none" stroke="#e9e7ce" stroke-width="4"/></g>
+        <g transform="translate(828 6)"><rect width="58" height="58" rx="12" fill="#20211d"/><circle cx="18" cy="18" r="6" fill="#d7ff59"/><circle cx="40" cy="40" r="6" fill="#c34f83"/></g>
+        <g transform="translate(896 6)"><rect width="58" height="58" rx="12" fill="#20211d"/><path d="M10 44l19-30 19 30z" fill="#59c6d1"/></g>
+      </g>
+    </g>
+  </g>
+</svg>
