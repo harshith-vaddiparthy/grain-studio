@@ -2,6 +2,8 @@
 
 A local-first, open-source image texture workbench. Drop in a PNG, JPEG, or WebP, choose one of 25 tactile effects, tune the material, compare it with the source, and export a fresh image.
 
+**Live app:** https://grain-studio-one.vercel.app
+
 ![Grain Studio editor](docs/screenshots/editor-desktop.png)
 
 ## Why this exists
