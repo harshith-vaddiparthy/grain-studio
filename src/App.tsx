@@ -3,7 +3,6 @@ import { AppHeader } from "./components/AppHeader";
 import { CanvasStage } from "./components/CanvasStage";
 import { ExportDialog } from "./components/ExportDialog";
 import { Inspector } from "./components/Inspector";
-import { InstallDialog } from "./components/InstallDialog";
 import { SourceRail } from "./components/SourceRail";
 import { TextureDock } from "./components/TextureDock";
 import { Toast } from "./components/Toast";
@@ -41,8 +40,6 @@ export default function App() {
   const [revealOriginal, setRevealOriginal] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [installOpen, setInstallOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -170,26 +167,6 @@ export default function App() {
     };
   }, [openPicker, selectedId, visibleTextures]);
 
-  useEffect(() => {
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-  }, []);
-
-  const requestInstall = useCallback(async () => {
-    if (!installPrompt) {
-      setInstallOpen(true);
-      return;
-    }
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    setInstallPrompt(null);
-    setToast(choice.outcome === "accepted" ? "Grain Studio installation started." : "Installation was dismissed.");
-  }, [installPrompt]);
-
   const exportImage = useCallback(async (format: ExportFormat, size: ExportSize, quality: number) => {
     if (!source) return;
     setExporting(true);
@@ -239,7 +216,6 @@ export default function App() {
         isExporting={exporting}
         onCompareChange={setCompareEnabled}
         onExport={() => setExportOpen(true)}
-        onInstall={() => void requestInstall()}
         repositoryUrl={import.meta.env.VITE_REPOSITORY_URL || "https://github.com/harshith-vaddiparthy/grain-studio"}
       />
 
@@ -287,7 +263,6 @@ export default function App() {
       />
 
       <ExportDialog open={exportOpen} source={source} texture={texture} exporting={exporting} onClose={() => setExportOpen(false)} onExport={exportImage} />
-      <InstallDialog open={installOpen} onClose={() => setInstallOpen(false)} />
       <Toast message={toast ?? preview.error} onDismiss={() => setToast(null)} />
     </main>
   );

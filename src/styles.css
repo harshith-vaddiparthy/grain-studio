@@ -218,6 +218,20 @@
     gap: 8px;
   }
 
+  .product-hunt-badge {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    border-radius: 5px;
+    line-height: 0;
+    overflow: hidden;
+  }
+  .product-hunt-badge img {
+    display: block;
+    width: 250px;
+    height: 54px;
+  }
+
   .privacy-chip {
     display: inline-flex;
     align-items: center;
@@ -902,9 +916,9 @@
     .app-shell { display: block; height: auto; min-height: 100dvh; padding: 10px 10px 118px; overflow: visible; }
     .app-header { position: sticky; top: 10px; grid-template-columns: 1fr auto; min-height: 58px; margin-bottom: 10px; padding: 0 9px 0 11px; }
     .brand-copy small, .privacy-chip, .header-github, .view-switch { display: none; }
-    .header-actions .primary-button, .header-actions .install-button { min-height: 38px; }
+    .header-actions .primary-button { min-height: 38px; }
     .header-actions .primary-button { min-width: 88px; }
-    .header-actions .install-button { padding-inline: 11px; }
+    .product-hunt-badge img { width: 120px; height: auto; }
     .workspace-layout { display: grid; grid-template-columns: 1fr; gap: 10px; }
     .canvas-stage { min-height: 58dvh; padding: 18px 12px 24px; }
     .canvas-wrap { height: auto; width: 100%; max-height: none; }
@@ -922,6 +936,7 @@
   @media (max-width: 520px) {
     .brand-copy strong { font-size: 11px; }
     .brand-mark { width: 34px; height: 34px; }
+    .product-hunt-badge { display: none; }
     .canvas-stage { min-height: 52dvh; }
     .preview-toolbar { font-size: 8px; }
     .palette-grid { grid-template-columns: repeat(5, minmax(44px, 1fr)); overflow-x: auto; }
