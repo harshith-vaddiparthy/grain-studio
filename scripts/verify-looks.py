@@ -5,6 +5,7 @@ indexable document, that its call to action opens the exact effect it documents,
 and that the sitemap and JSON-LD are valid.
 """
 
+import argparse
 import functools
 import http.server
 import json
@@ -42,21 +43,32 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 
 
 def main():
-    socketserver.TCPServer.allow_reuse_address = True
-    httpd = socketserver.TCPServer(("127.0.0.1", PORT), functools.partial(Quiet, directory=ROOT))
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    base = f"http://127.0.0.1:{PORT}"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--url", help="Verify a deployed origin instead of the local build.")
+    args = parser.parse_args()
+
+    httpd = None
+    if args.url:
+        base = args.url.rstrip("/")
+        sitemap_xml = __import__("urllib.request", fromlist=["request"]).urlopen(f"{base}/sitemap.xml", timeout=30).read()
+        robots = __import__("urllib.request", fromlist=["request"]).urlopen(f"{base}/robots.txt", timeout=30).read().decode()
+    else:
+        socketserver.TCPServer.allow_reuse_address = True
+        httpd = socketserver.TCPServer(("127.0.0.1", PORT), functools.partial(Quiet, directory=ROOT))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        base = f"http://127.0.0.1:{PORT}"
+        sitemap_xml = (Path(ROOT) / "sitemap.xml").read_bytes()
+        robots = (Path(ROOT) / "robots.txt").read_text()
     console_errors = []
 
-    print("\n1. Sitemap and robots")
-    tree = ET.parse(Path(ROOT) / "sitemap.xml")
+    print(f"\n1. Sitemap and robots ({base})")
+    tree = ET.ElementTree(ET.fromstring(sitemap_xml))
     ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
     locs = [el.text for el in tree.getroot().findall("s:url/s:loc", ns)]
     check("sitemap parses with the correct namespace", len(locs) == 8, str(len(locs)))
     check("sitemap lists the editor and the hub", f"{ORIGIN}/" in locs and f"{ORIGIN}/looks/" in locs, str(locs[:2]))
     for slug in EXPECTED:
         check(f"sitemap lists {slug}", f"{ORIGIN}/looks/{slug}/" in locs)
-    robots = (Path(ROOT) / "robots.txt").read_text()
     check("robots points at the sitemap", f"Sitemap: {ORIGIN}/sitemap.xml" in robots, robots)
 
     with sync_playwright() as p:
@@ -121,7 +133,8 @@ def main():
 
         browser.close()
 
-    httpd.shutdown()
+    if httpd:
+        httpd.shutdown()
     print("\n" + "=" * 62)
     if failures:
         print(f"RESULT: {len(failures)} FAILED -> {failures}")
