@@ -79,7 +79,31 @@ def main():
         leaked = sorted(forbidden & set(props.keys()))
         check("no image-identifying property in production payload", not leaked, str(leaked))
 
-        print("\n4. Service worker registers without breaking the page")
+        print("\n4. Retention mechanics work in production")
+        page.goto(APP, wait_until="load", timeout=45000)
+        page.wait_for_selector(".inspector-actions button", timeout=25000)
+        page.click("button:has-text('Save look')")
+        page.wait_for_selector(".saved-looks li", timeout=10000)
+        chips = page.eval_on_selector_all(".saved-looks li > button:first-child", "els => els.map(e => e.textContent.trim())")
+        check("a look can be saved, named in plain language", chips == ["Risograph print"], str(chips))
+        page.reload(wait_until="load")
+        page.wait_for_selector(".saved-looks li", timeout=20000)
+        check("saved look survives a reload", page.locator(".saved-looks li").count() == 1)
+        check("opening group is the curated set", page.locator(".texture-dock button").count() == 6, str(page.locator(".texture-dock button").count()))
+        eyebrow = page.inner_text(".inspector .eyebrow").strip().lower()
+        check("plain-language name is on screen", eyebrow == "risograph print", eyebrow)
+        # The toast must not swallow a click aimed at the dock.
+        page.click(".texture-dock button[aria-label*='Cyanotype blueprint']", timeout=10000)
+        page.wait_for_timeout(500)
+        check("dock is clickable while a confirmation shows", page.inner_text(".inspector h1").strip() == "Blueprint", page.inner_text(".inspector h1"))
+        page.click(".saved-look-remove")
+        page.wait_for_timeout(400)
+        check("a saved look can be forgotten", page.locator(".saved-looks li").count() == 0)
+        page.wait_for_timeout(400)
+        events_now = [(b or {}).get("event") for _, b in analytics]
+        check("look_saved reached PostHog", "look_saved" in events_now, str(events_now))
+
+        print("\n5. Service worker registers without breaking the page")
         registered = page.evaluate("navigator.serviceWorker.getRegistrations().then(r => r.length)")
         check("service worker registered", registered >= 1, f"count={registered}")
         real_errors = [e for e in console_errors if "favicon" not in e.lower()]
