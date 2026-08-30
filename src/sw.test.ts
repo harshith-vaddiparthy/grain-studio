@@ -124,10 +124,33 @@ describe("service worker document handling", () => {
     expect(worker.cacheMatchCalls).toEqual([]);
   });
 
-  it("refreshes the stored offline document on every successful navigation", async () => {
+  it("caches each document under its own url", async () => {
     const worker = loadWorker();
     await worker.request(NAVIGATION);
-    expect(worker.putCalls).toEqual(["/"]);
+    expect(worker.putCalls).toEqual(["https://grainstudio.harshith.com/"]);
+  });
+
+  it("does not let a look page overwrite the editor's offline fallback", async () => {
+    /* Every navigation once wrote to "/", so visiting a static look page replaced
+       the editor as the offline document. */
+    const worker = loadWorker();
+    await worker.request({
+      url: "https://grainstudio.harshith.com/looks/halftone-effect/",
+      mode: "navigate",
+      destination: "document",
+    });
+    expect(worker.putCalls).toEqual(["https://grainstudio.harshith.com/looks/halftone-effect/"]);
+    expect(worker.putCalls).not.toContain("/");
+  });
+
+  it("falls back to the editor when an uncached document is requested offline", async () => {
+    const worker = loadWorker({ networkFails: true, preCached: ["/"] });
+    const response = await worker.request({
+      url: "https://grainstudio.harshith.com/looks/ascii-art/",
+      mode: "navigate",
+      destination: "document",
+    });
+    expect(response?.label).toBe("cache:/");
   });
 
   it("falls back to the cached document only when the network is unavailable", async () => {
@@ -165,11 +188,12 @@ describe("service worker asset handling", () => {
 
 describe("service worker lifecycle", () => {
   it("evicts the legacy grain-studio-v1 cache on activation", async () => {
-    const worker = loadWorker({ existingCaches: ["grain-studio-v1", "grain-studio-v2"] });
+    const worker = loadWorker({ existingCaches: ["grain-studio-v1", "grain-studio-v2", "grain-studio-v3"] });
     await worker.lifecycle("activate");
 
     expect(worker.deletedCaches).toContain("grain-studio-v1");
-    expect(worker.deletedCaches).not.toContain("grain-studio-v2");
+    expect(worker.deletedCaches).toContain("grain-studio-v2");
+    expect(worker.deletedCaches).not.toContain("grain-studio-v3");
     expect(worker.state.claimed).toBe(true);
   });
 

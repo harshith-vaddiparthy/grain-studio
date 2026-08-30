@@ -17,7 +17,7 @@
    deletes every cache whose name does not match the current one, which is what
    evicts the stale grain-studio-v1 document for existing installations. */
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const CACHE = `grain-studio-${CACHE_VERSION}`;
 const OFFLINE_DOCUMENT = "/";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon.svg", "/samples/studio-sample.svg"];
@@ -55,10 +55,12 @@ const store = (request, response) => {
 const networkFirstDocument = async (request) => {
   try {
     const response = await fetch(request);
-    store(OFFLINE_DOCUMENT, response);
+    /* Cache each document under its own URL. Storing every navigation under "/"
+       would let a look page overwrite the editor's offline fallback. */
+    store(request, response);
     return response;
   } catch {
-    const cached = await caches.match(OFFLINE_DOCUMENT);
+    const cached = (await caches.match(request)) || (await caches.match(OFFLINE_DOCUMENT));
     return cached || Response.error();
   }
 };

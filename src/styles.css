@@ -248,6 +248,23 @@
   }
   .privacy-chip svg { color: var(--success); }
 
+  /* Sits with the other header affordances and matches the chip's proportions. */
+  .header-looks {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    color: var(--muted-strong);
+    background: transparent;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .header-looks:hover { color: var(--text); border-color: #4a4d43; background: #1d1e1a; }
+
   .icon-button, .primary-button, .secondary-button {
     display: inline-flex;
     align-items: center;
@@ -965,7 +982,7 @@
     body { overflow: auto; }
     .app-shell { display: block; height: auto; min-height: 100dvh; padding: 10px 10px 118px; overflow: visible; }
     .app-header { position: sticky; top: 10px; grid-template-columns: 1fr auto; min-height: 58px; margin-bottom: 10px; padding: 0 9px 0 11px; }
-    .brand-copy small, .privacy-chip, .header-github, .view-switch { display: none; }
+    .brand-copy small, .privacy-chip, .header-github, .header-looks, .view-switch { display: none; }
     .header-actions .primary-button { min-height: 38px; }
     .header-actions .primary-button { min-width: 88px; }
     .product-hunt-badge img { width: 120px; height: auto; }

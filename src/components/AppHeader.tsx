@@ -42,6 +42,11 @@ export function AppHeader({
           <HardDrive size={14} weight="fill" aria-hidden="true" />
           <span>Local only</span>
         </span>
+        {/* Real link, not a router push: /looks/ is a set of static documents, and
+            this is also the internal path a crawler follows to reach them. */}
+        <a className="header-looks" href="/looks/" title="Browse documented looks">
+          Looks
+        </a>
         {repositoryUrl ? (
           <a className="icon-button header-github" href={repositoryUrl} target="_blank" rel="noreferrer" aria-label="Open the project source on GitHub" title="Source code">
             <GithubLogo size={19} weight="fill" aria-hidden="true" />
