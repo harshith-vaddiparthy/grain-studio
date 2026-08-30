@@ -628,7 +628,9 @@
   .category-tabs::-webkit-scrollbar { display: none; }
   .category-tabs button {
     min-height: 28px;
-    padding: 0 9px;
+    /* 7px rather than 9px so all seven groups, including "Start here", fit the
+       inspector column without relying on the hidden overflow scroll. */
+    padding: 0 7px;
     border: 1px solid transparent;
     border-radius: 8px;
     color: var(--muted);

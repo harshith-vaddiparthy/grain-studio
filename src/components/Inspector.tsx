@@ -1,6 +1,6 @@
 import { ArrowsClockwise, DiceFive, LinkSimple, SlidersHorizontal } from "@phosphor-icons/react";
 import { PALETTES, TEXTURE_CATEGORIES } from "../data/filters";
-import type { PaletteId, TextureCategory, TextureDefinition, TextureSettings } from "../types";
+import type { PaletteId, TextureDefinition, TextureFilter, TextureSettings } from "../types";
 import { RangeControl } from "./RangeControl";
 
 export function Inspector({
@@ -15,8 +15,8 @@ export function Inspector({
 }: {
   texture: TextureDefinition;
   settings: TextureSettings;
-  category: "All" | TextureCategory;
-  onCategoryChange: (category: "All" | TextureCategory) => void;
+  category: TextureFilter;
+  onCategoryChange: (category: TextureFilter) => void;
   onSettingsChange: (patch: Partial<TextureSettings>) => void;
   onReset: () => void;
   onRandomize: () => void;
@@ -27,13 +27,13 @@ export function Inspector({
       <div className="inspector-heading">
         <span className="inspector-icon"><SlidersHorizontal size={17} aria-hidden="true" /></span>
         <div>
-          <p className="eyebrow">Material</p>
+          <p className="eyebrow">{texture.job}</p>
           <h1>{texture.label}</h1>
         </div>
       </div>
       <p className="texture-description">{texture.description}</p>
 
-      <div className="category-tabs" role="tablist" aria-label="Texture categories">
+      <div className="category-tabs" role="tablist" aria-label="Texture groups">
         {TEXTURE_CATEGORIES.map((item) => (
           <button key={item} type="button" role="tab" aria-selected={category === item} className={category === item ? "is-active" : ""} onClick={() => onCategoryChange(item)}>
             {item}

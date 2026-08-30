@@ -43,10 +43,18 @@ export type TextureDefinition = {
   label: string;
   shortLabel: string;
   category: TextureCategory;
+  /* What this effect is called in ordinary language. The catalog labels are
+     deliberate brand names, which read well but tell a newcomer nothing; `job`
+     is the term a designer would actually search for. */
+  job: string;
   description: string;
   defaults: TextureSettings;
   swatch: string;
 };
+
+/* "Start here" is a curated subset shown first, so a new visitor chooses between
+   a handful of recognisable jobs instead of twenty-five invented names. */
+export type TextureFilter = "Start here" | "All" | TextureCategory;
 
 export type ImageSource = {
   element: HTMLImageElement;

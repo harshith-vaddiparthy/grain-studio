@@ -84,13 +84,41 @@ def main():
         expected = {"intensity": "42", "detail": "88", "contrast": "55", "scale": "20"}
         check("all non-default settings from recipe are applied", values == expected, f"{values} != {expected}")
 
-        print("\n2. A visit without a recipe is unchanged")
+        print("\n2. Progressive disclosure and non-starter recipes")
+        # A new visitor should meet the curated set, not the whole catalog.
+        page.goto(base, wait_until="load")
+        page.wait_for_selector(".texture-dock button", timeout=15000)
+        tabs = page.eval_on_selector_all(".category-tabs button", "els => els.map(e => e.textContent.trim())")
+        active = page.eval_on_selector_all(
+            ".category-tabs button[aria-selected='true']", "els => els.map(e => e.textContent.trim())"
+        )
+        check("Start here is the opening group", active == ["Start here"], str(active))
+        check("full catalog stays one click away", "All" in tabs, str(tabs))
+        starters = page.locator(".texture-dock button").count()
+        check("opens on a handful of choices, not 25", starters == 6, f"{starters} shown")
+        # The eyebrow is uppercased by CSS, so compare case-insensitively.
+        eyebrow = page.inner_text(".inspector .eyebrow").strip().lower()
+        check("plain-language name is always visible", eyebrow == "risograph print", eyebrow)
+
+        # Isoform is deliberately NOT a starter, so an arriving recipe for it must
+        # switch to the full catalog or the shared look would be invisible.
+        page.goto(f"{base}/?r=1.isoform.64.92.58.18.ember.17", wait_until="load")
+        page.wait_for_selector(".inspector h1", timeout=15000)
+        check("non-starter recipe still selects its effect", page.inner_text(".inspector h1").strip() == "Isoform", page.inner_text(".inspector h1"))
+        active2 = page.eval_on_selector_all(
+            ".category-tabs button[aria-selected='true']", "els => els.map(e => e.textContent.trim())"
+        )
+        check("non-starter recipe opens the full catalog", active2 == ["All"], str(active2))
+        visible_ids = page.eval_on_selector_all(".texture-dock button", "els => els.map(e => e.dataset.textureId)")
+        check("the shared effect is visible in the dock", "isoform" in visible_ids, str(len(visible_ids)))
+
+        print("\n3. A visit without a recipe is unchanged")
         page.goto(base, wait_until="load")
         page.wait_for_selector(".inspector h1", timeout=15000)
         default_heading = page.inner_text(".inspector h1")
         check("default effect still loads", default_heading.strip() == "Riso Print", f"got {default_heading!r}")
 
-        print("\n3. Copy look link")
+        print("\n4. Copy look link")
         page.click("button.share-action")
         page.wait_for_timeout(600)
         clipboard = page.evaluate("navigator.clipboard.readText()")
@@ -99,7 +127,7 @@ def main():
         toast = page.inner_text(".toast") if page.locator(".toast").count() else ""
         check("user is told the image is not shared", "never your image" in toast.lower(), toast)
 
-        print("\n4. Export is the activation event")
+        print("\n5. Export is the activation event")
         page.click("header button.primary-button")
         page.wait_for_selector(".modal", timeout=10000)
         with page.expect_download(timeout=30000) as download:
@@ -120,7 +148,7 @@ def main():
             check("the exported look is recorded as a recipe", str(props.get("recipe", "")).startswith("1.riso-print."), str(props.get("recipe")))
             check("export format and size preset are recorded", props.get("export_format") == "png" and props.get("export_size") == "original", str(props))
 
-        print("\n5. Analytics payloads")
+        print("\n6. Analytics payloads")
         page.wait_for_timeout(800)
         events = [c.get("event") for c in captured]
         check("app_opened fired", "app_opened" in events, str(events))
@@ -138,7 +166,7 @@ def main():
         check("events are labelled as verification, not production", not bad_env, str(bad_env))
         check("every payload carries the site tag", all((c.get("properties") or {}).get("site") == "grainstudio" for c in captured))
 
-        print("\n6. Console health")
+        print("\n7. Console health")
         real_errors = [e for e in console_errors if "favicon" not in e.lower()]
         check("no console errors", not real_errors, str(real_errors[:3]))
 

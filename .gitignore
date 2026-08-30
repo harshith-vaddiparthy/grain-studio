@@ -11,3 +11,4 @@ test-results
 output
 .vercel
 .env*.local
+__pycache__

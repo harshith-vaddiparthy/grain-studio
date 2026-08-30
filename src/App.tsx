@@ -6,14 +6,14 @@ import { Inspector } from "./components/Inspector";
 import { SourceRail } from "./components/SourceRail";
 import { TextureDock } from "./components/TextureDock";
 import { Toast } from "./components/Toast";
-import { TEXTURES, TEXTURE_BY_ID } from "./data/filters";
+import { STARTER_TEXTURE_IDS, TEXTURES, TEXTURE_BY_ID, texturesForFilter } from "./data/filters";
 import { canvasToBlob, downloadBlob, exportDimensions, extensionForFormat, loadImageFile, loadImageFromUrl, releaseImage } from "./engine/image";
 import { fitWithin } from "./engine/math";
 import { renderTexture } from "./engine/render";
 import { useTexturePreview, useTextureThumbnails } from "./hooks/useTexturePreview";
 import { hasExportedBefore, initAnalytics, markExported, track } from "./lib/analytics";
 import { encodeRecipe, readRecipeFromSearch, recipeLink } from "./lib/recipe";
-import type { ExportFormat, ExportSize, ImageSource, TextureCategory, TextureId, TextureSettings } from "./types";
+import type { ExportFormat, ExportSize, ImageSource, TextureFilter, TextureId, TextureSettings } from "./types";
 
 const initialSettings = () => Object.fromEntries(
   TEXTURES.map((texture) => [texture.id, { ...texture.defaults }]),
@@ -31,6 +31,12 @@ function safeSlug(value: string) {
    instead of replacing a wrong effect a frame later. */
 const incomingRecipe = typeof window === "undefined" ? null : readRecipeFromSearch(window.location.search);
 
+/* New visitors open on the curated set so they choose between six recognisable
+   jobs rather than twenty-five invented names. A shared recipe for an effect
+   outside that set opens on the full catalog, so the arriving look is visible. */
+const initialCategory: TextureFilter =
+  incomingRecipe && !STARTER_TEXTURE_IDS.includes(incomingRecipe.textureId) ? "All" : "Start here";
+
 export default function App() {
   const [source, setSource] = useState<ImageSource | null>(null);
   const sourceRef = useRef<ImageSource | null>(null);
@@ -44,7 +50,7 @@ export default function App() {
     if (incomingRecipe) base[incomingRecipe.textureId] = { ...incomingRecipe.settings };
     return base;
   });
-  const [category, setCategory] = useState<"All" | TextureCategory>("All");
+  const [category, setCategory] = useState<TextureFilter>(initialCategory);
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [compare, setCompare] = useState(50);
   const [revealOriginal, setRevealOriginal] = useState(false);
@@ -55,10 +61,7 @@ export default function App() {
 
   const texture = TEXTURE_BY_ID[selectedId];
   const settings = settingsById[selectedId];
-  const visibleTextures = useMemo(
-    () => category === "All" ? TEXTURES : TEXTURES.filter((item) => item.category === category),
-    [category],
-  );
+  const visibleTextures = useMemo(() => texturesForFilter(category), [category]);
   const preview = useTexturePreview(source, selectedId, settings);
   const thumbnails = useTextureThumbnails(source);
 
@@ -141,9 +144,9 @@ export default function App() {
     track("effect_applied", { effect_id: next, effect_category: TEXTURE_BY_ID[next].category });
   }, []);
 
-  const changeCategory = useCallback((next: "All" | TextureCategory) => {
+  const changeCategory = useCallback((next: TextureFilter) => {
     setCategory(next);
-    const available = next === "All" ? TEXTURES : TEXTURES.filter((item) => item.category === next);
+    const available = texturesForFilter(next);
     if (!available.some((item) => item.id === selectedId) && available[0]) setSelectedId(available[0].id);
   }, [selectedId]);
 

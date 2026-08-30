@@ -54,7 +54,7 @@ export function TextureDock({
             data-dock-item
             data-texture-id={texture.id}
             className={`texture-option swatch-${texture.swatch}${selected === texture.id ? " is-selected" : ""}`}
-            aria-label={texture.label}
+            aria-label={`${texture.label} — ${texture.job}`}
             aria-pressed={selected === texture.id}
             onClick={() => {
               onSelect(texture.id);
@@ -62,7 +62,7 @@ export function TextureDock({
             }}
           >
             <span className="texture-preview" style={thumbnails[texture.id] ? { backgroundImage: `url(${thumbnails[texture.id]})` } : undefined} aria-hidden="true" />
-            <span className="texture-tooltip">{texture.shortLabel}</span>
+            <span className="texture-tooltip">{texture.job}</span>
           </button>
         ))}
       </div>
