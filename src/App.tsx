@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "./components/AppHeader";
 import { CanvasStage } from "./components/CanvasStage";
 import { ExportDialog } from "./components/ExportDialog";
+import { InstallOffer } from "./components/InstallOffer";
 import { Inspector } from "./components/Inspector";
 import { SourceRail } from "./components/SourceRail";
 import { TextureDock } from "./components/TextureDock";
@@ -13,6 +14,14 @@ import { renderTexture } from "./engine/render";
 import { useTexturePreview, useTextureThumbnails } from "./hooks/useTexturePreview";
 import { hasExportedBefore, initAnalytics, markExported, track } from "./lib/analytics";
 import { decodeRecipe, encodeRecipe, readRecipeFromSearch, recipeLink } from "./lib/recipe";
+import {
+  detectIosSafari,
+  hasDeclinedInstall,
+  installOfferKind,
+  isStandaloneDisplay,
+  rememberInstallDeclined,
+  type InstallOfferKind,
+} from "./lib/install";
 import {
   addSavedLook,
   describeLook,
@@ -69,6 +78,8 @@ export default function App() {
   const [savedLooks, setSavedLooks] = useState<SavedLook[]>(() =>
     typeof window === "undefined" ? [] : loadSavedLooks(),
   );
+  const [installOffer, setInstallOffer] = useState<Exclude<InstallOfferKind, "none">| null>(null);
+  const installPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
 
   const texture = TEXTURE_BY_ID[selectedId];
   const settings = settingsById[selectedId];
@@ -82,6 +93,25 @@ export default function App() {
       sourceRef.current = next;
       return next;
     });
+  }, []);
+
+  /* Hold the install opportunity but show nothing yet. The offer is made only
+     after the product has proved itself with a real export. */
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      installPromptRef.current = event as BeforeInstallPromptEvent;
+    };
+    const onInstalled = () => {
+      installPromptRef.current = null;
+      setInstallOffer(null);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   /* Session bootstrap. Mount-only by design: it records the arrival, not any
@@ -247,6 +277,20 @@ export default function App() {
         adjusted: encodeRecipe(selectedId, settings) !== encodeRecipe(selectedId, texture.defaults),
       });
       if (firstExport) markExported();
+
+      /* Only after treating their own image, never for the bundled sample. */
+      if (!source.isSample) {
+        const kind = installOfferKind({
+          hasNativePrompt: installPromptRef.current !== null,
+          isStandalone: isStandaloneDisplay(),
+          isIosSafari: detectIosSafari(navigator.userAgent),
+          declined: hasDeclinedInstall(),
+        });
+        if (kind !== "none") {
+          setInstallOffer(kind);
+          track("install_offered", { install_kind: kind });
+        }
+      }
     } catch (error) {
       setToast(error instanceof Error ? error.message : "The image could not be exported.");
     } finally {
@@ -311,6 +355,25 @@ export default function App() {
     setSavedLooks(next);
     persistSavedLooks(next);
   }, [savedLooks]);
+
+  const acceptInstall = useCallback(async () => {
+    const prompt = installPromptRef.current;
+    setInstallOffer(null);
+    if (!prompt) return;
+    installPromptRef.current = null;
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      track("install_accepted", { install_kind: choice.outcome === "accepted" ? "native" : "dismissed" });
+    } catch {
+      // A browser that refuses the prompt should not surface an error.
+    }
+  }, []);
+
+  const declineInstall = useCallback(() => {
+    setInstallOffer(null);
+    rememberInstallDeclined();
+  }, []);
 
   return (
     <main
@@ -391,6 +454,9 @@ export default function App() {
       />
 
       <ExportDialog open={exportOpen} source={source} texture={texture} exporting={exporting} onClose={() => setExportOpen(false)} onExport={exportImage} />
+      {installOffer && (
+        <InstallOffer kind={installOffer} onInstall={() => void acceptInstall()} onDismiss={declineInstall} />
+      )}
       <Toast message={toast ?? preview.error} onDismiss={() => setToast(null)} />
     </main>
   );

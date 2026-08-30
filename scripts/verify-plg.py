@@ -12,6 +12,7 @@ writes into the production PostHog project.
 
 import functools
 import http.server
+import importlib.util
 import json
 import socketserver
 import threading
@@ -20,6 +21,9 @@ from playwright.sync_api import sync_playwright
 
 PORT = 8899
 ROOT = "dist"
+_spec = importlib.util.spec_from_file_location("gs_audit", "scripts/activation-audit.py")
+_audit = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_audit)
 FORBIDDEN = {
     "file_name", "filename", "name", "image_name", "bytes", "file_size",
     "width", "height", "dimensions", "mime_type", "data_url", "canvas",
@@ -176,7 +180,64 @@ def main():
             check("the exported look is recorded as a recipe", str(props.get("recipe", "")).startswith("1.riso-print."), str(props.get("recipe")))
             check("export format and size preset are recorded", props.get("export_format") == "png" and props.get("export_size") == "original", str(props))
 
-        print("\n7. Analytics payloads")
+        print("\n7. Contextual install is offered only after real value")
+        from pathlib import Path as _Path
+
+        fixture = _audit.make_png(_Path("/tmp/verify-plg-source.png"))
+        inject = """() => {
+            const e = new Event('beforeinstallprompt');
+            e.prompt = () => Promise.resolve();
+            Object.defineProperty(e, 'userChoice', { value: Promise.resolve({ outcome: 'accepted', platform: 'web' }) });
+            window.dispatchEvent(e);
+        }"""
+
+        # Exporting the bundled sample must NOT trigger an install offer.
+        page.goto(base, wait_until="load")
+        page.wait_for_selector(".texture-dock button", timeout=15000)
+        page.evaluate(inject)
+        page.click("header button.primary-button")
+        page.wait_for_selector(".modal", timeout=10000)
+        with page.expect_download(timeout=45000):
+            page.click(".modal button.primary-button")
+        page.wait_for_timeout(700)
+        check("no install offer for the bundled sample", page.locator(".install-offer").count() == 0)
+
+        # Exporting the visitor's OWN image should offer installation once.
+        page.evaluate(inject)
+        page.set_input_files("input[type=file]", str(fixture))
+        page.wait_for_timeout(900)
+        page.click("header button.primary-button")
+        page.wait_for_selector(".modal", timeout=10000)
+        with page.expect_download(timeout=45000):
+            page.click(".modal button.primary-button")
+        page.wait_for_selector(".install-offer", timeout=10000)
+        check("install offered after exporting your own image", page.locator(".install-offer").count() == 1)
+        check("a real install button is shown when a prompt exists", page.locator(".install-offer button:has-text('Install')").count() == 1)
+        offer_text = page.inner_text(".install-offer").lower()
+        check("the offer repeats the privacy promise", "never leave this device" in offer_text, offer_text)
+
+        page.click(".install-offer button:has-text('Not now')")
+        page.wait_for_timeout(400)
+        check("declining hides the offer", page.locator(".install-offer").count() == 0)
+
+        # And it must never nag again.
+        page.reload(wait_until="load")
+        page.wait_for_selector(".texture-dock button", timeout=15000)
+        page.evaluate(inject)
+        page.set_input_files("input[type=file]", str(fixture))
+        page.wait_for_timeout(900)
+        page.click("header button.primary-button")
+        page.wait_for_selector(".modal", timeout=10000)
+        with page.expect_download(timeout=45000):
+            page.click(".modal button.primary-button")
+        page.wait_for_timeout(900)
+        check("a declined offer never returns", page.locator(".install-offer").count() == 0)
+
+        custom = [c for c in captured if c.get("event") == "export_completed" and (c.get("properties") or {}).get("source_kind") == "custom"]
+        check("custom exports are distinguished from sample exports", len(custom) >= 2, str(len(custom)))
+        check("install_offered was recorded once", len([c for c in captured if c.get("event") == "install_offered"]) == 1, str([c.get("event") for c in captured]))
+
+        print("\n8. Analytics payloads")
         page.wait_for_timeout(800)
         events = [c.get("event") for c in captured]
         check("app_opened fired", "app_opened" in events, str(events))
@@ -196,7 +257,7 @@ def main():
         check("events are labelled as verification, not production", not bad_env, str(bad_env))
         check("every payload carries the site tag", all((c.get("properties") or {}).get("site") == "grainstudio" for c in captured))
 
-        print("\n8. Console health")
+        print("\n9. Console health")
         real_errors = [e for e in console_errors if "favicon" not in e.lower()]
         check("no console errors", not real_errors, str(real_errors[:3]))
 

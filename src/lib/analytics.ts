@@ -47,6 +47,8 @@ export const EVENTS = [
   "saved_look_opened",
   "recipe_copied",
   "recipe_link_opened",
+  "install_offered",
+  "install_accepted",
 ] as const;
 
 export type EventName = (typeof EVENTS)[number];
@@ -77,6 +79,7 @@ export const ALLOWED_PROPERTIES = [
   "export_size",
   "adjusted",
   "saved_look_count",
+  "install_kind",
 ] as const;
 
 /* Property names that must never appear, even if a call site tries. Asserted in

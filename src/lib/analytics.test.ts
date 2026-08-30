@@ -56,6 +56,8 @@ describe("analytics payload safety", () => {
       "saved_look_opened",
       "recipe_copied",
       "recipe_link_opened",
+      "install_offered",
+      "install_accepted",
     ]);
   });
 });

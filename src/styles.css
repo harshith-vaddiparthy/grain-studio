@@ -896,12 +896,32 @@
   .quality-control.is-disabled { opacity: 0.46; }
 
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; }
-  .install-grid { display: grid; gap: 8px; padding: 20px 0; }
-  .install-grid article { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: start; padding: 14px; border: 1px solid #30322c; border-radius: 12px; background: #20211d; }
-  .install-grid article > svg { padding: 10px; box-sizing: content-box; border-radius: 10px; color: var(--accent); background: #292b25; }
-  .install-grid article div { display: grid; gap: 5px; }
-  .install-grid strong { font-size: 12px; }
-  .install-grid p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+  /* Offered once after a real export, so it sits above the confirmation rather
+     than competing with it. */
+  .install-offer {
+    position: fixed;
+    right: 22px;
+    bottom: 186px;
+    z-index: 121;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    max-width: min(420px, calc(100vw - 32px));
+    padding: 12px 13px;
+    border: 1px solid #45483f;
+    border-radius: 10px;
+    color: #e7e8e0;
+    background: rgba(30, 31, 27, 0.97);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+    animation: toast-in 220ms ease-out;
+  }
+  .install-offer > svg { flex: none; color: var(--accent); }
+  .install-offer-copy { display: grid; gap: 3px; }
+  .install-offer-copy strong { font-size: 10px; }
+  .install-offer-copy p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+  .install-offer-actions { display: flex; gap: 6px; margin-left: auto; }
+  .install-offer-actions button { min-height: 26px; padding: 0 9px; font-size: 9px; white-space: nowrap; }
 
   .toast {
     position: fixed;
@@ -961,6 +981,9 @@
     .texture-option { width: 58px !important; height: 58px !important; transform: none !important; }
     .texture-tooltip { display: none; }
     .toast { right: 14px; bottom: 108px; left: 14px; max-width: none; }
+    .install-offer { right: 14px; bottom: 168px; left: 14px; max-width: none; flex-wrap: wrap; }
+    .install-offer-actions { margin-left: 0; width: 100%; }
+    .install-offer-actions button { flex: 1; }
   }
 
   @media (max-width: 520px) {
