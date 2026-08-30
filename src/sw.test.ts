@@ -5,10 +5,10 @@
    them. These tests execute the real public/sw.js in a mock worker scope and
    assert the corrected behaviour, so that regression cannot ship again. */
 
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-
-const source = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
+/* Imported through Vite's ?raw so the assertion runs against the exact file that
+   ships, without depending on Node type declarations that are not installed. */
+import source from "../public/sw.js?raw";
 
 type MockResponse = { label: string; ok: boolean; type: string; clone: () => MockResponse };
 
