@@ -1,6 +1,7 @@
-import { ArrowsClockwise, DiceFive, LinkSimple, SlidersHorizontal } from "@phosphor-icons/react";
+import { ArrowsClockwise, BookmarkSimple, DiceFive, LinkSimple, SlidersHorizontal, X } from "@phosphor-icons/react";
 import { PALETTES, TEXTURE_CATEGORIES } from "../data/filters";
 import type { PaletteId, TextureDefinition, TextureFilter, TextureSettings } from "../types";
+import type { SavedLook } from "../lib/savedLooks";
 import { RangeControl } from "./RangeControl";
 
 export function Inspector({
@@ -12,6 +13,10 @@ export function Inspector({
   onReset,
   onRandomize,
   onShare,
+  savedLooks,
+  onSaveLook,
+  onApplySavedLook,
+  onForgetSavedLook,
 }: {
   texture: TextureDefinition;
   settings: TextureSettings;
@@ -21,6 +26,10 @@ export function Inspector({
   onReset: () => void;
   onRandomize: () => void;
   onShare: () => void;
+  savedLooks: readonly SavedLook[];
+  onSaveLook: () => void;
+  onApplySavedLook: (recipe: string) => void;
+  onForgetSavedLook: (recipe: string) => void;
 }) {
   return (
     <aside className="inspector" aria-label="Texture controls">
@@ -79,15 +88,48 @@ export function Inspector({
           Reseed
         </button>
         <button
+          className="secondary-button"
+          type="button"
+          onClick={onSaveLook}
+          title="Keep this look in this browser so you can return to it."
+        >
+          <BookmarkSimple size={16} aria-hidden="true" />
+          Save look
+        </button>
+        <button
           className="secondary-button share-action"
           type="button"
           onClick={onShare}
           title="Copy a link that opens this look. Your image is never included."
         >
           <LinkSimple size={16} aria-hidden="true" />
-          Copy look link
+          Copy link
         </button>
       </div>
+
+      {savedLooks.length > 0 && (
+        <section className="saved-looks" aria-label="Saved looks">
+          <p className="eyebrow">Saved in this browser</p>
+          <ul>
+            {savedLooks.map((look) => (
+              <li key={look.recipe}>
+                <button type="button" onClick={() => onApplySavedLook(look.recipe)} title={`Reopen ${look.label}`}>
+                  {look.label}
+                </button>
+                <button
+                  type="button"
+                  className="saved-look-remove"
+                  aria-label={`Forget ${look.label}`}
+                  title={`Forget ${look.label}`}
+                  onClick={() => onForgetSavedLook(look.recipe)}
+                >
+                  <X size={11} aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </aside>
   );
 }

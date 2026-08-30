@@ -52,6 +52,8 @@ describe("analytics payload safety", () => {
       "effect_applied",
       "custom_image_selected",
       "export_completed",
+      "look_saved",
+      "saved_look_opened",
       "recipe_copied",
       "recipe_link_opened",
     ]);

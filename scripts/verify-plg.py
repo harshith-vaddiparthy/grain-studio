@@ -127,7 +127,35 @@ def main():
         toast = page.inner_text(".toast") if page.locator(".toast").count() else ""
         check("user is told the image is not shared", "never your image" in toast.lower(), toast)
 
-        print("\n5. Export is the activation event")
+        print("\n5. Saved looks give a reason to return")
+        page.click("button.share-action")  # settle any prior toast
+        page.wait_for_timeout(300)
+        page.click("button:has-text('Save look')")
+        page.wait_for_selector(".saved-looks li", timeout=10000)
+        chips = page.eval_on_selector_all(".saved-looks li > button:first-child", "els => els.map(e => e.textContent.trim())")
+        check("a saved look appears, named in plain language", chips == ["Risograph print"], str(chips))
+
+        # Persistence is the whole point: it must survive a fresh page load.
+        page.reload(wait_until="load")
+        page.wait_for_selector(".saved-looks li", timeout=15000)
+        chips_after = page.eval_on_selector_all(".saved-looks li > button:first-child", "els => els.map(e => e.textContent.trim())")
+        check("saved look survives a reload", chips_after == ["Risograph print"], str(chips_after))
+
+        # Reopening from a saved look must restore it, including a non-starter.
+        page.click(".category-tabs button:has-text('Pattern')")
+        page.wait_for_timeout(400)
+        page.click(".saved-looks li > button:first-child")
+        page.wait_for_timeout(500)
+        check("reopening a saved look restores the effect", page.inner_text(".inspector h1").strip() == "Riso Print", page.inner_text(".inspector h1"))
+
+        page.click(".saved-look-remove")
+        page.wait_for_timeout(400)
+        check("forgetting a look removes it", page.locator(".saved-looks li").count() == 0)
+        page.reload(wait_until="load")
+        page.wait_for_selector(".inspector h1", timeout=15000)
+        check("a forgotten look stays gone after reload", page.locator(".saved-looks li").count() == 0)
+
+        print("\n6. Export is the activation event")
         page.click("header button.primary-button")
         page.wait_for_selector(".modal", timeout=10000)
         with page.expect_download(timeout=30000) as download:
@@ -148,12 +176,14 @@ def main():
             check("the exported look is recorded as a recipe", str(props.get("recipe", "")).startswith("1.riso-print."), str(props.get("recipe")))
             check("export format and size preset are recorded", props.get("export_format") == "png" and props.get("export_size") == "original", str(props))
 
-        print("\n6. Analytics payloads")
+        print("\n7. Analytics payloads")
         page.wait_for_timeout(800)
         events = [c.get("event") for c in captured]
         check("app_opened fired", "app_opened" in events, str(events))
         check("recipe_link_opened fired on recipe arrival", "recipe_link_opened" in events, str(events))
         check("recipe_copied fired on share", "recipe_copied" in events, str(events))
+        check("look_saved fired", "look_saved" in events, str(events))
+        check("saved_look_opened fired", "saved_look_opened" in events, str(events))
 
         leaked = set()
         bad_env = []
@@ -166,7 +196,7 @@ def main():
         check("events are labelled as verification, not production", not bad_env, str(bad_env))
         check("every payload carries the site tag", all((c.get("properties") or {}).get("site") == "grainstudio" for c in captured))
 
-        print("\n7. Console health")
+        print("\n8. Console health")
         real_errors = [e for e in console_errors if "favicon" not in e.lower()]
         check("no console errors", not real_errors, str(real_errors[:3]))
 

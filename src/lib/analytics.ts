@@ -37,12 +37,14 @@ export const isLocalHost = (hostname: string) =>
   hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || hostname.endsWith(".local");
 
 /* Stages of the growth equation this product can actually observe.
-   traffic -> exploration -> intent -> value -> loop supply -> loop demand */
+   traffic -> exploration -> intent -> value -> retention -> loop supply -> loop demand */
 export const EVENTS = [
   "app_opened",
   "effect_applied",
   "custom_image_selected",
   "export_completed",
+  "look_saved",
+  "saved_look_opened",
   "recipe_copied",
   "recipe_link_opened",
 ] as const;
@@ -74,6 +76,7 @@ export const ALLOWED_PROPERTIES = [
   "export_format",
   "export_size",
   "adjusted",
+  "saved_look_count",
 ] as const;
 
 /* Property names that must never appear, even if a call site tries. Asserted in

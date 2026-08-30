@@ -707,8 +707,32 @@
   .palette-grid button.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
   .inspector-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 20px; }
-  /* The share action spans the row because it is the loop step, not a tweak. */
-  .inspector-actions .share-action { grid-column: 1 / -1; }
+
+  /* Saved looks are the only reason the product gives someone to come back, so
+     they sit directly under the actions rather than behind a menu. */
+  .saved-looks { padding-top: 20px; }
+  .saved-looks .eyebrow { display: block; margin-bottom: 10px; }
+  .saved-looks ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .saved-looks li {
+    display: flex;
+    align-items: center;
+    border: 1px solid #2d2f2a;
+    border-radius: 8px;
+    background: #1c1e19;
+  }
+  .saved-looks li:hover { border-color: #3a3c35; }
+  .saved-looks li > button {
+    min-height: 26px;
+    border: 0;
+    background: transparent;
+    color: #bec1b7;
+    font-size: 9px;
+    cursor: pointer;
+  }
+  .saved-looks li > button:first-child { padding: 0 5px 0 9px; }
+  .saved-looks li > button:first-child:hover { color: var(--text); }
+  .saved-look-remove { display: grid; place-items: center; padding: 0 8px 0 3px; color: var(--muted); }
+  .saved-look-remove:hover { color: var(--text); }
 
   .texture-dock {
     position: absolute;
@@ -881,6 +905,8 @@
 
   .toast {
     position: fixed;
+    /* Never intercept a click aimed at the canvas or the dock behind it. */
+    pointer-events: none;
     right: 22px;
     bottom: 126px;
     z-index: 120;
@@ -898,7 +924,7 @@
     animation: toast-in 260ms var(--ease-out) both;
   }
   .toast svg { flex: none; color: var(--accent); }
-  .toast button { margin-left: auto; padding: 5px 6px; border: 0; border-radius: 6px; color: var(--muted-strong); background: transparent; font-size: 9px; cursor: pointer; }
+  .toast button { pointer-events: auto; margin-left: auto; padding: 5px 6px; border: 0; border-radius: 6px; color: var(--muted-strong); background: transparent; font-size: 9px; cursor: pointer; }
   .toast button:hover { color: var(--text); background: #2d2f29; }
 
   @keyframes fade-in { from { opacity: 0; } }

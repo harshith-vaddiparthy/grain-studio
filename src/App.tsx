@@ -12,7 +12,15 @@ import { fitWithin } from "./engine/math";
 import { renderTexture } from "./engine/render";
 import { useTexturePreview, useTextureThumbnails } from "./hooks/useTexturePreview";
 import { hasExportedBefore, initAnalytics, markExported, track } from "./lib/analytics";
-import { encodeRecipe, readRecipeFromSearch, recipeLink } from "./lib/recipe";
+import { decodeRecipe, encodeRecipe, readRecipeFromSearch, recipeLink } from "./lib/recipe";
+import {
+  addSavedLook,
+  describeLook,
+  loadSavedLooks,
+  persistSavedLooks,
+  removeSavedLook,
+  type SavedLook,
+} from "./lib/savedLooks";
 import type { ExportFormat, ExportSize, ImageSource, TextureFilter, TextureId, TextureSettings } from "./types";
 
 const initialSettings = () => Object.fromEntries(
@@ -58,6 +66,9 @@ export default function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [savedLooks, setSavedLooks] = useState<SavedLook[]>(() =>
+    typeof window === "undefined" ? [] : loadSavedLooks(),
+  );
 
   const texture = TEXTURE_BY_ID[selectedId];
   const settings = settingsById[selectedId];
@@ -261,6 +272,46 @@ export default function App() {
     });
   }, [selectedId, settings, texture.category]);
 
+  /* Retention. A saved look is the same recipe string kept in this browser, so
+     returning to a treatment costs one click and never needs an account. */
+  const saveLook = useCallback(() => {
+    const look = describeLook(selectedId, settings);
+    const next = addSavedLook(savedLooks, look);
+    setSavedLooks(next);
+    persistSavedLooks(next);
+    track("look_saved", {
+      effect_id: selectedId,
+      effect_category: texture.category,
+      palette: settings.palette,
+      recipe: look.recipe,
+      saved_look_count: next.length,
+    });
+    setToast(`Saved "${look.label}" to this browser.`);
+  }, [savedLooks, selectedId, settings, texture.category]);
+
+  const applySavedLook = useCallback((recipe: string) => {
+    const decoded = decodeRecipe(recipe);
+    if (!decoded) return;
+    setSettingsById((current) => ({ ...current, [decoded.textureId]: { ...decoded.settings } }));
+    setSelectedId(decoded.textureId);
+    /* Reveal the effect if the current group would hide it. */
+    setCategory((current) =>
+      texturesForFilter(current).some((item) => item.id === decoded.textureId) ? current : "All",
+    );
+    track("saved_look_opened", {
+      effect_id: decoded.textureId,
+      effect_category: TEXTURE_BY_ID[decoded.textureId].category,
+      palette: decoded.settings.palette,
+      recipe,
+    });
+  }, []);
+
+  const forgetSavedLook = useCallback((recipe: string) => {
+    const next = removeSavedLook(savedLooks, recipe);
+    setSavedLooks(next);
+    persistSavedLooks(next);
+  }, [savedLooks]);
+
   return (
     <main
       className="app-shell"
@@ -320,6 +371,10 @@ export default function App() {
           onReset={() => updateSettings({ ...texture.defaults })}
           onRandomize={() => updateSettings({ seed: Math.floor(Math.random() * 10_000) })}
           onShare={() => void shareRecipe()}
+          savedLooks={savedLooks}
+          onSaveLook={saveLook}
+          onApplySavedLook={applySavedLook}
+          onForgetSavedLook={forgetSavedLook}
         />
       </div>
 
