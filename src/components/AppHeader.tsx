@@ -47,6 +47,19 @@ export function AppHeader({
             <GithubLogo size={19} weight="fill" aria-hidden="true" />
           </a>
         ) : null}
+        <a
+          className="product-hunt-badge"
+          href="https://www.producthunt.com/products/grain-studio?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-grain-studio"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            alt="Grain Studio - Make tactile image textures in your browser for Free. | Product Hunt"
+            width="250"
+            height="54"
+            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1235901&theme=light&t=1788022149614"
+          />
+        </a>
         <button className="primary-button" type="button" disabled={!canExport || isExporting} onClick={onExport}>
           <DownloadSimple size={17} weight="bold" aria-hidden="true" />
           {isExporting ? "Rendering" : "Export"}
