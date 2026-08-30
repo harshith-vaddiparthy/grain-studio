@@ -705,6 +705,8 @@
   .palette-grid button.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
   .inspector-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 20px; }
+  /* The share action spans the row because it is the loop step, not a tweak. */
+  .inspector-actions .share-action { grid-column: 1 / -1; }
 
   .texture-dock {
     position: absolute;

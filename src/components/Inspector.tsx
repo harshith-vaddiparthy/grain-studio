@@ -1,4 +1,4 @@
-import { ArrowsClockwise, DiceFive, SlidersHorizontal } from "@phosphor-icons/react";
+import { ArrowsClockwise, DiceFive, LinkSimple, SlidersHorizontal } from "@phosphor-icons/react";
 import { PALETTES, TEXTURE_CATEGORIES } from "../data/filters";
 import type { PaletteId, TextureCategory, TextureDefinition, TextureSettings } from "../types";
 import { RangeControl } from "./RangeControl";
@@ -11,6 +11,7 @@ export function Inspector({
   onSettingsChange,
   onReset,
   onRandomize,
+  onShare,
 }: {
   texture: TextureDefinition;
   settings: TextureSettings;
@@ -19,6 +20,7 @@ export function Inspector({
   onSettingsChange: (patch: Partial<TextureSettings>) => void;
   onReset: () => void;
   onRandomize: () => void;
+  onShare: () => void;
 }) {
   return (
     <aside className="inspector" aria-label="Texture controls">
@@ -75,6 +77,15 @@ export function Inspector({
         <button className="secondary-button" type="button" onClick={onRandomize}>
           <DiceFive size={16} aria-hidden="true" />
           Reseed
+        </button>
+        <button
+          className="secondary-button share-action"
+          type="button"
+          onClick={onShare}
+          title="Copy a link that opens this look. Your image is never included."
+        >
+          <LinkSimple size={16} aria-hidden="true" />
+          Copy look link
         </button>
       </div>
     </aside>

@@ -11,6 +11,8 @@ import { canvasToBlob, downloadBlob, exportDimensions, extensionForFormat, loadI
 import { fitWithin } from "./engine/math";
 import { renderTexture } from "./engine/render";
 import { useTexturePreview, useTextureThumbnails } from "./hooks/useTexturePreview";
+import { hasExportedBefore, initAnalytics, markExported, track } from "./lib/analytics";
+import { encodeRecipe, readRecipeFromSearch, recipeLink } from "./lib/recipe";
 import type { ExportFormat, ExportSize, ImageSource, TextureCategory, TextureId, TextureSettings } from "./types";
 
 const initialSettings = () => Object.fromEntries(
@@ -25,6 +27,10 @@ function safeSlug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "texture";
 }
 
+/* Read once, before first paint, so an arriving recipe becomes the initial state
+   instead of replacing a wrong effect a frame later. */
+const incomingRecipe = typeof window === "undefined" ? null : readRecipeFromSearch(window.location.search);
+
 export default function App() {
   const [source, setSource] = useState<ImageSource | null>(null);
   const sourceRef = useRef<ImageSource | null>(null);
@@ -32,8 +38,12 @@ export default function App() {
   const dragDepth = useRef(0);
   const historyRef = useRef<Array<{ id: TextureId; settings: TextureSettings }>>([]);
 
-  const [selectedId, setSelectedId] = useState<TextureId>("riso-print");
-  const [settingsById, setSettingsById] = useState(initialSettings);
+  const [selectedId, setSelectedId] = useState<TextureId>(incomingRecipe?.textureId ?? "riso-print");
+  const [settingsById, setSettingsById] = useState(() => {
+    const base = initialSettings();
+    if (incomingRecipe) base[incomingRecipe.textureId] = { ...incomingRecipe.settings };
+    return base;
+  });
   const [category, setCategory] = useState<"All" | TextureCategory>("All");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [compare, setCompare] = useState(50);
@@ -60,6 +70,20 @@ export default function App() {
     });
   }, []);
 
+  /* Session bootstrap. Mount-only by design: it records the arrival, not any
+     later state, so it deliberately does not react to selection changes. */
+  useEffect(() => {
+    initAnalytics();
+    track("app_opened");
+    if (incomingRecipe) {
+      track("recipe_link_opened", {
+        effect_id: incomingRecipe.textureId,
+        palette: incomingRecipe.settings.palette,
+        recipe: encodeRecipe(incomingRecipe.textureId, incomingRecipe.settings),
+      });
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     loadImageFromUrl("/samples/studio-sample.svg", "studio-sample", true)
@@ -81,6 +105,9 @@ export default function App() {
     try {
       replaceSource(await loadImageFile(file));
       setToast(null);
+      /* Records only that a custom image was chosen. No filename, byte size,
+         MIME type, or pixel dimension is collected. */
+      track("custom_image_selected");
     } catch (error) {
       setToast(error instanceof Error ? error.message : "The image could not be opened.");
     }
@@ -104,6 +131,14 @@ export default function App() {
     if (!previous) return;
     setSelectedId(previous.id);
     setSettingsById((current) => ({ ...current, [previous.id]: previous.settings }));
+  }, []);
+
+  /* Effect selection is tracked here rather than in an effect on selectedId, so
+     an arriving recipe or a category fallback is never counted as a deliberate
+     user choice. */
+  const selectTexture = useCallback((next: TextureId) => {
+    setSelectedId(next);
+    track("effect_applied", { effect_id: next, effect_category: TEXTURE_BY_ID[next].category });
   }, []);
 
   const changeCategory = useCallback((next: "All" | TextureCategory) => {
@@ -149,7 +184,7 @@ export default function App() {
         const next = visibleTextures[(currentIndex + direction + visibleTextures.length) % visibleTextures.length];
         if (next) {
           event.preventDefault();
-          setSelectedId(next.id);
+          selectTexture(next.id);
         }
       }
     };
@@ -165,7 +200,7 @@ export default function App() {
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
     };
-  }, [openPicker, selectedId, visibleTextures]);
+  }, [openPicker, selectTexture, selectedId, visibleTextures]);
 
   const exportImage = useCallback(async (format: ExportFormat, size: ExportSize, quality: number) => {
     if (!source) return;
@@ -182,12 +217,46 @@ export default function App() {
       downloadBlob(blob, filename);
       setExportOpen(false);
       setToast(`Saved ${filename}`);
+      /* The value moment. `source_kind` separates trying the bundled sample from
+         treating a real image, which is the activation signal that matters.
+         `export_size` is the chosen preset, never the resulting pixel count. */
+      const firstExport = !hasExportedBefore();
+      track("export_completed", {
+        effect_id: selectedId,
+        effect_category: texture.category,
+        palette: settings.palette,
+        recipe: encodeRecipe(selectedId, settings),
+        source_kind: source.isSample ? "sample" : "custom",
+        is_first_export: firstExport,
+        export_format: format,
+        export_size: size,
+        adjusted: encodeRecipe(selectedId, settings) !== encodeRecipe(selectedId, texture.defaults),
+      });
+      if (firstExport) markExported();
     } catch (error) {
       setToast(error instanceof Error ? error.message : "The image could not be exported.");
     } finally {
       setExporting(false);
     }
-  }, [selectedId, settings, source, texture.label]);
+  }, [selectedId, settings, source, texture.category, texture.defaults, texture.label]);
+
+  /* The acquisition loop. The link carries the effect and its settings only, so a
+     recipient opens the same look and applies it to their own image. */
+  const shareRecipe = useCallback(async () => {
+    const link = recipeLink(window.location.origin, selectedId, settings);
+    try {
+      await navigator.clipboard.writeText(link);
+      setToast("Look link copied. It carries the settings only, never your image.");
+    } catch {
+      setToast(link);
+    }
+    track("recipe_copied", {
+      effect_id: selectedId,
+      effect_category: texture.category,
+      palette: settings.palette,
+      recipe: encodeRecipe(selectedId, settings),
+    });
+  }, [selectedId, settings, texture.category]);
 
   return (
     <main
@@ -237,7 +306,7 @@ export default function App() {
             onChoose={openPicker}
             onCompareChange={setCompare}
           />
-          <TextureDock textures={visibleTextures} selected={selectedId} thumbnails={thumbnails} onSelect={setSelectedId} />
+          <TextureDock textures={visibleTextures} selected={selectedId} thumbnails={thumbnails} onSelect={selectTexture} />
         </div>
         <Inspector
           texture={texture}
@@ -247,6 +316,7 @@ export default function App() {
           onSettingsChange={updateSettings}
           onReset={() => updateSettings({ ...texture.defaults })}
           onRandomize={() => updateSettings({ seed: Math.floor(Math.random() * 10_000) })}
+          onShare={() => void shareRecipe()}
         />
       </div>
 
