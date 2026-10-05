@@ -27,7 +27,8 @@ export type TextureId =
   | "slant"
   | "dot-cells"
   | "isoform"
-  | "chroma-pop";
+  | "chroma-pop"
+  | "film-grain";
 
 export type TextureSettings = {
   intensity: number;
@@ -53,7 +54,7 @@ export type TextureDefinition = {
 };
 
 /* "Start here" is a curated subset shown first, so a new visitor chooses between
-   a handful of recognisable jobs instead of twenty-five invented names. */
+   a handful of recognisable jobs before exploring the full catalog. */
 export type TextureFilter = "Start here" | "All" | TextureCategory;
 
 export type ImageSource = {

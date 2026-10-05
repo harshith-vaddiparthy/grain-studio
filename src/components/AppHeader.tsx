@@ -18,13 +18,16 @@ export function AppHeader({
 }) {
   return (
     <header className="app-header">
-      <a className="brand" href="#workspace" aria-label="Grain Studio home">
-        <BrandMark />
-        <span className="brand-copy">
-          <strong>Grain Studio</strong>
-          <small>Open texture workbench</small>
-        </span>
-      </a>
+      <div className="brand-group">
+        <a className="brand" href="#workspace" aria-label="Grain Studio home">
+          <BrandMark />
+          <span className="brand-copy">
+            <strong>Grain Studio</strong>
+            <small>Open texture workbench</small>
+          </span>
+        </a>
+        <a className="creator-link" href="https://www.harshith.com/" rel="author">By Harshith Vaddiparthy</a>
+      </div>
 
       <div className="view-switch" role="group" aria-label="Preview mode">
         <button type="button" className={!compareEnabled ? "is-active" : ""} aria-pressed={!compareEnabled} onClick={() => onCompareChange(false)}>

@@ -1,8 +1,8 @@
 # Grain Studio
 
-A local-first, open-source image texture workbench. Drop in a PNG, JPEG, or WebP, choose one of 25 tactile effects, tune the material, compare it with the source, and export a fresh image.
+A local-first, open-source image texture workbench by **[Harshith Vaddiparthy](https://www.harshith.com/)**. Drop in a PNG, JPEG, or WebP, choose one of 26 tactile effects, tune the material, compare it with the source, and export a fresh image.
 
-**Live app:** https://grain-studio-one.vercel.app
+**Live app:** https://grainstudio.harshith.com/
 
 ![Grain Studio editor](docs/screenshots/editor-desktop.png)
 
@@ -12,15 +12,17 @@ Most online image-effect tools upload files to a server or hide useful controls 
 
 ## Features
 
-- 25 original texture effects across print, grain, paint, pattern, and pixel categories
+- 26 texture effects, including colour-preserving Silver Grain, across print, grain, paint, pattern, and pixel categories
 - File picker, drag and drop, and clipboard paste
 - Live intensity, detail, contrast, scale, palette, and seed controls
 - Before and after comparison scrubber
 - PNG, JPEG, and WebP export
-- Original-size export up to an 8192px longest edge, plus 4096px, 2048px, and 1024px options
+- Source-size export within an 8192px longest-edge and 16,777,216-pixel budget, plus 4096px, 2048px, and 1024px options
+- Source transparency preserved in PNG/WebP, with an explicit white-background option; JPEG flattens onto white
+- Background-worker export with preparing, rendering and encoding states, cancellation and a 60-second limit on supported browsers
 - Keyboard shortcuts and accessible controls
 - Installable progressive web app with runtime caching
-- Local-only processing with no image upload or analytics dependency
+- Local image processing with no image uploads; existing allowlisted product events contain no image identifiers, and respect Do Not Track / Global Privacy Control
 - Responsive desktop, tablet, and phone layouts
 
 ## Quick start
@@ -42,14 +44,25 @@ pnpm build
 pnpm preview
 ```
 
+Browser regressions (requires Python Playwright and Pillow):
+
+```bash
+python scripts/verify-quality.py --url http://127.0.0.1:4173
+python scripts/verify-plg.py
+python scripts/verify-looks.py
+```
+
+The quality suite exercises responsive creator credit, image replacement, comparison and actual PNG/WebP/JPEG downloads. Viewport emulation is not a physical-device guarantee.
+
 ## Use the editor
 
 1. Start with the included generated sample or choose your own image.
 2. Select a texture from the dock. Use Left and Right Arrow to move through the visible category.
 3. Tune intensity, detail, contrast, scale, palette, or reseed the grain.
-4. Turn on Compare and drag the divider. Hold Space at any time to reveal the original.
-5. Choose Export, select format and size, then download the rendered file.
-6. Choose Install to add Grain Studio to a supported device.
+4. Turn on Compare using the stage button on any screen and drag the divider. On a keyboard, hold Space to reveal the original.
+5. Choose Export, select format, safe output size and transparency, then download the rendered file. A worker export can be cancelled without discarding your source. Browsers without OffscreenCanvas use a disclosed main-thread fallback limited to 2048px, which cannot be interrupted during synchronous rendering.
+6. After exporting your own image, a supported browser may offer installation. The editor remains account-free.
+7. Use Save look to keep settings in this browser, or Copy link to share settings without your image.
 
 Keyboard shortcuts:
 
@@ -68,7 +81,7 @@ VITE_REPOSITORY_URL=https://github.com/your-name/grain-studio pnpm build
 
 ## Architecture
 
-The app has no backend. React manages editor state, while the Canvas 2D renderer works from a downscaled preview and creates a fresh higher-resolution render only during export. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the processing pipeline and extension guide.
+The image editor has no backend. React manages editor state, while the Canvas 2D renderer works from a downscaled preview. Supported browsers create a bounded higher-resolution render in a dedicated OffscreenCanvas worker for export. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the processing pipeline and extension guide.
 
 ## Design and reference policy
 
@@ -82,4 +95,4 @@ Issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) 
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+Created and maintained by **Harshith Vaddiparthy**. MIT. See [`LICENSE`](LICENSE). No attribution watermark is imposed on exported images.

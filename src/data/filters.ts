@@ -34,6 +34,7 @@ export const TEXTURES: readonly TextureDefinition[] = [
   { id: "dot-cells", label: "Dot Cells", shortLabel: "Braille", category: "Pattern", job: "Braille dots", description: "Braille-like clusters encode brightness as tactile cells.", defaults: defaults(70, 90, 58, 14, "ink"), swatch: "braille" },
   { id: "isoform", label: "Isoform", shortLabel: "Iso", category: "Pattern", job: "Isometric blocks", description: "Isometric blocks turn tonal samples into small volumes.", defaults: defaults(64, 92, 58, 18, "ember"), swatch: "iso" },
   { id: "chroma-pop", label: "Chroma Pop", shortLabel: "Chroma", category: "Pixel", job: "Neon dot halftone", description: "Luminous color dots float over a deep ink base.", defaults: defaults(64, 90, 60, 16), swatch: "chroma" },
+  { id: "film-grain", label: "Silver Grain", shortLabel: "Silver", category: "Grain", job: "Natural film grain", description: "Fine, natural grain that keeps the source colours.", defaults: defaults(60, 65, 50, 8, "source"), swatch: "film" },
 ] as const;
 
 /* Curated opening choices. Each is an honest match for a term designers already
@@ -45,7 +46,7 @@ export const STARTER_TEXTURE_IDS: readonly TextureId[] = [
   "riso-print",
   "cross-dot",
   "blueprint",
-  "pixel-crush",
+  "film-grain",
   "glyph-weave",
 ];
 
