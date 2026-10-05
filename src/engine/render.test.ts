@@ -14,6 +14,7 @@ const pixelTextures: TextureId[] = [
   "watercolor",
   "sumi-wash",
   "blueprint",
+  "film-grain",
 ];
 
 function fixture(width = 6, height = 5) {

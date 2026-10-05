@@ -60,9 +60,10 @@ type Meta = {
   path: string;
   jsonLd: unknown;
   body: string;
+  article?: boolean;
 };
 
-const htmlDocument = ({ title, description, path, jsonLd, body }: Meta) => {
+const htmlDocument = ({ title, description, path, jsonLd, body, article = false }: Meta) => {
   const url = `${SITE.origin}${path}`;
   return `<!doctype html>
 <html lang="en">
@@ -71,10 +72,12 @@ const htmlDocument = ({ title, description, path, jsonLd, body }: Meta) => {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escape(title)}</title>
 <meta name="description" content="${escape(description)}" />
+<meta name="author" content="Harshith Vaddiparthy" />
 <link rel="canonical" href="${url}" />
 <meta name="theme-color" content="#0d0e0c" />
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
-<meta property="og:type" content="article" />
+<meta property="og:type" content="${article ? "article" : "website"}" />
+${article ? '<meta property="article:author" content="https://www.harshith.com/" />' : ""}
 <meta property="og:site_name" content="${escape(SITE.name)}" />
 <meta property="og:title" content="${escape(title)}" />
 <meta property="og:description" content="${escape(description)}" />
@@ -92,6 +95,7 @@ ${body}
 <footer>
   <p>${escape(SITE.name)} runs entirely in your browser. Images are never uploaded, and there is no account.
   Source is available on <a href="${SITE.repository}">GitHub</a>.</p>
+  <p>Created by <a rel="author" href="https://www.harshith.com/">Harshith Vaddiparthy</a>.</p>
 </footer>
 </div>
 </body>
@@ -127,6 +131,7 @@ const lookPage = (look: (typeof LOOKS)[number]) => {
     title: `${look.title} | ${SITE.name}`,
     description: look.summary,
     path: `/looks/${look.slug}/`,
+    article: true,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "TechArticle",
@@ -135,7 +140,8 @@ const lookPage = (look: (typeof LOOKS)[number]) => {
       url: `${SITE.origin}/looks/${look.slug}/`,
       isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.origin },
       about: { "@type": "Thing", name: look.job },
-      publisher: { "@type": "Person", name: "Harshith Vaddiparthy", url: "https://www.harshith.com" },
+      author: { "@type": "Person", name: "Harshith Vaddiparthy", url: "https://www.harshith.com/" },
+      publisher: { "@type": "Person", name: "Harshith Vaddiparthy", url: "https://www.harshith.com/" },
     },
     body,
   });
@@ -155,7 +161,7 @@ ${LOOKS.map(
 <div class="cta">
   <a class="primary" href="/">Open the editor</a>
 </div>
-<p class="note">Grain Studio ships ${LOOKS.length} documented looks and 25 effects in total. The rest are in the editor's own catalog.</p>`;
+<p class="note">Grain Studio ships ${LOOKS.length} documented looks and 26 effects in total. The rest are in the editor's own catalog.</p>`;
 
   return htmlDocument({
     title: `Image texture effects, explained | ${SITE.name}`,
@@ -167,6 +173,7 @@ ${LOOKS.map(
       "@type": "CollectionPage",
       name: "Image texture effects, explained",
       url: `${SITE.origin}/looks/`,
+      creator: { "@type": "Person", name: "Harshith Vaddiparthy", url: "https://www.harshith.com/" },
       isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.origin },
       hasPart: LOOKS.map((look) => ({
         "@type": "TechArticle",

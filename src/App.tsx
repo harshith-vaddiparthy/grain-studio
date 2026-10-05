@@ -8,9 +8,8 @@ import { SourceRail } from "./components/SourceRail";
 import { TextureDock } from "./components/TextureDock";
 import { Toast } from "./components/Toast";
 import { STARTER_TEXTURE_IDS, TEXTURES, TEXTURE_BY_ID, texturesForFilter } from "./data/filters";
-import { canvasToBlob, downloadBlob, exportDimensions, extensionForFormat, loadImageFile, loadImageFromUrl, releaseImage } from "./engine/image";
-import { fitWithin } from "./engine/math";
-import { renderTexture } from "./engine/render";
+import { exportTextureFile, type ExportStage } from "./engine/export";
+import { downloadBlob, exportDimensions, extensionForFormat, loadImageFile, loadImageFromUrl, releaseImage } from "./engine/image";
 import { useTexturePreview, useTextureThumbnails } from "./hooks/useTexturePreview";
 import { hasExportedBefore, initAnalytics, markExported, track } from "./lib/analytics";
 import { decodeRecipe, encodeRecipe, readRecipeFromSearch, recipeLink } from "./lib/recipe";
@@ -60,11 +59,14 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
   const historyRef = useRef<Array<{ id: TextureId; settings: TextureSettings }>>([]);
+  const settingsRef = useRef(initialSettings());
+  const imageLoadVersion = useRef(0);
 
   const [selectedId, setSelectedId] = useState<TextureId>(incomingRecipe?.textureId ?? "riso-print");
   const [settingsById, setSettingsById] = useState(() => {
     const base = initialSettings();
     if (incomingRecipe) base[incomingRecipe.textureId] = { ...incomingRecipe.settings };
+    settingsRef.current = base;
     return base;
   });
   const [category, setCategory] = useState<TextureFilter>(initialCategory);
@@ -74,6 +76,8 @@ export default function App() {
   const [dragActive, setDragActive] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportStage, setExportStage] = useState<ExportStage | null>(null);
+  const exportRef = useRef<AbortController | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [savedLooks, setSavedLooks] = useState<SavedLook[]>(() =>
     typeof window === "undefined" ? [] : loadSavedLooks(),
@@ -88,11 +92,14 @@ export default function App() {
   const thumbnails = useTextureThumbnails(source);
 
   const replaceSource = useCallback((next: ImageSource | null) => {
-    setSource((current) => {
-      if (current !== next) releaseImage(current);
-      sourceRef.current = next;
-      return next;
-    });
+    imageLoadVersion.current += 1;
+    const current = sourceRef.current;
+    if (current !== next) {
+      exportRef.current?.abort();
+      releaseImage(current);
+    }
+    sourceRef.current = next;
+    setSource(next);
   }, []);
 
   /* Hold the install opportunity but show nothing yet. The offer is made only
@@ -130,51 +137,60 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    const sampleVersion = imageLoadVersion.current;
     loadImageFromUrl("/samples/studio-sample.svg", "studio-sample", true)
       .then((image) => {
-        if (!cancelled && !sourceRef.current) replaceSource(image);
+        if (!cancelled && sampleVersion === imageLoadVersion.current && !sourceRef.current) replaceSource(image);
+        else releaseImage(image);
       })
       .catch(() => {
         if (!cancelled) setToast("The sample image could not be loaded. Choose your own image to begin.");
       });
     return () => {
       cancelled = true;
+      imageLoadVersion.current += 1;
+      exportRef.current?.abort();
       releaseImage(sourceRef.current);
+      sourceRef.current = null;
     };
   }, [replaceSource]);
 
   const openFiles = useCallback(async (files: FileList | File[]) => {
     const file = files[0];
     if (!file) return;
+    const version = ++imageLoadVersion.current;
+    exportRef.current?.abort();
     try {
-      replaceSource(await loadImageFile(file));
+      const image = await loadImageFile(file);
+      if (version !== imageLoadVersion.current) { releaseImage(image); return; }
+      replaceSource(image);
       setToast(null);
       /* Records only that a custom image was chosen. No filename, byte size,
          MIME type, or pixel dimension is collected. */
       track("custom_image_selected");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "The image could not be opened.");
+      if (version === imageLoadVersion.current) setToast(error instanceof Error ? error.message : "The image could not be opened.");
     }
   }, [replaceSource]);
 
   const openPicker = useCallback(() => fileInputRef.current?.click(), []);
 
   const updateSettings = useCallback((patch: Partial<TextureSettings>) => {
-    setSettingsById((current) => {
-      historyRef.current.push({ id: selectedId, settings: { ...current[selectedId] } });
-      if (historyRef.current.length > 40) historyRef.current.shift();
-      return {
-        ...current,
-        [selectedId]: { ...current[selectedId], ...patch },
-      };
-    });
+    const current = settingsRef.current;
+    historyRef.current.push({ id: selectedId, settings: { ...current[selectedId] } });
+    if (historyRef.current.length > 40) historyRef.current.shift();
+    const next = { ...current, [selectedId]: { ...current[selectedId], ...patch } };
+    settingsRef.current = next;
+    setSettingsById(next);
   }, [selectedId]);
 
   const undo = useCallback(() => {
     const previous = historyRef.current.pop();
     if (!previous) return;
     setSelectedId(previous.id);
-    setSettingsById((current) => ({ ...current, [previous.id]: previous.settings }));
+    const next = { ...settingsRef.current, [previous.id]: previous.settings };
+    settingsRef.current = next;
+    setSettingsById(next);
   }, []);
 
   /* Effect selection is tracked here rather than in an effect on selectedId, so
@@ -193,6 +209,7 @@ export default function App() {
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
+      if (isEditableTarget(event.target) || document.querySelector("[role=dialog]")) return;
       const image = Array.from(event.clipboardData?.files ?? []).find((file) => file.type.startsWith("image/"));
       if (image) {
         event.preventDefault();
@@ -205,7 +222,8 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isEditableTarget(event.target)) return;
+      if (isEditableTarget(event.target) || document.querySelector("[role=dialog]")) return;
+      if (event.code === "Space" && event.target instanceof HTMLElement && event.target.closest("button,a,[role=button]")) return;
       const command = event.metaKey || event.ctrlKey;
       if (command && event.key.toLowerCase() === "o") {
         event.preventDefault();
@@ -246,17 +264,31 @@ export default function App() {
     };
   }, [openPicker, selectTexture, selectedId, visibleTextures]);
 
-  const exportImage = useCallback(async (format: ExportFormat, size: ExportSize, quality: number) => {
-    if (!source) return;
+  const exportImage = useCallback(async (format: ExportFormat, size: ExportSize, quality: number, preserveTransparency: boolean) => {
+    if (!source || exportRef.current) return;
+    const exportSource = source;
+    const exportId = selectedId;
+    const exportSettings = { ...settings };
+    const controller = new AbortController();
+    exportRef.current = controller;
     setExporting(true);
+    setExportStage("preparing");
     setToast(null);
     try {
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-      const requested = exportDimensions(source, size);
-      const dimensions = fitWithin(requested.width, requested.height, 8192);
-      const canvas = document.createElement("canvas");
-      renderTexture(source.element, canvas, selectedId, settings, dimensions.width, dimensions.height);
-      const blob = await canvasToBlob(canvas, format, quality);
+      const dimensions = exportDimensions(exportSource, size);
+      const blob = await exportTextureFile({
+        source: exportSource.element,
+        textureId: exportId,
+        settings: exportSettings,
+        width: dimensions.width,
+        height: dimensions.height,
+        format,
+        quality,
+        preserveTransparency,
+        signal: controller.signal,
+        onStage: setExportStage,
+      });
+      if (controller.signal.aborted) throw new DOMException("Export cancelled.", "AbortError");
       const filename = `${safeSlug(source.name)}-${safeSlug(texture.label)}.${extensionForFormat(format)}`;
       downloadBlob(blob, filename);
       setExportOpen(false);
@@ -292,11 +324,25 @@ export default function App() {
         }
       }
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "The image could not be exported.");
+      if (!(error instanceof Error && error.name === "AbortError")) {
+        setToast(error instanceof Error ? error.message : "The image could not be exported.");
+      }
     } finally {
-      setExporting(false);
+      if (exportRef.current === controller) {
+        exportRef.current = null;
+        setExporting(false);
+        setExportStage(null);
+      }
     }
   }, [selectedId, settings, source, texture.category, texture.defaults, texture.label]);
+
+  const closeExport = useCallback(() => {
+    if (exportRef.current) {
+      exportRef.current.abort();
+      return;
+    }
+    setExportOpen(false);
+  }, []);
 
   /* The acquisition loop. The link carries the effect and its settings only, so a
      recipient opens the same look and applies it to their own image. */
@@ -336,7 +382,9 @@ export default function App() {
   const applySavedLook = useCallback((recipe: string) => {
     const decoded = decodeRecipe(recipe);
     if (!decoded) return;
-    setSettingsById((current) => ({ ...current, [decoded.textureId]: { ...decoded.settings } }));
+    const next = { ...settingsRef.current, [decoded.textureId]: { ...decoded.settings } };
+    settingsRef.current = next;
+    setSettingsById(next);
     setSelectedId(decoded.textureId);
     /* Reveal the effect if the current group would hide it. */
     setCategory((current) =>
@@ -422,6 +470,7 @@ export default function App() {
             dragActive={dragActive}
             onChoose={openPicker}
             onCompareChange={setCompare}
+            onCompareToggle={setCompareEnabled}
           />
           <TextureDock textures={visibleTextures} selected={selectedId} thumbnails={thumbnails} onSelect={selectTexture} />
         </div>
@@ -453,7 +502,7 @@ export default function App() {
         }}
       />
 
-      <ExportDialog open={exportOpen} source={source} texture={texture} exporting={exporting} onClose={() => setExportOpen(false)} onExport={exportImage} />
+      <ExportDialog open={exportOpen} source={source} texture={texture} exporting={exporting} stage={exportStage} onClose={closeExport} onCancel={closeExport} onExport={exportImage} />
       {installOffer && (
         <InstallOffer kind={installOffer} onInstall={() => void acceptInstall()} onDismiss={declineInstall} />
       )}

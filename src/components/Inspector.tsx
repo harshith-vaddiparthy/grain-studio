@@ -31,6 +31,7 @@ export function Inspector({
   onApplySavedLook: (recipe: string) => void;
   onForgetSavedLook: (recipe: string) => void;
 }) {
+  const isFilmGrain = texture.id === "film-grain";
   return (
     <aside className="inspector" aria-label="Texture controls">
       <div className="inspector-heading">
@@ -51,32 +52,36 @@ export function Inspector({
       </div>
 
       <div className="control-stack">
-        <RangeControl id="intensity" label="Intensity" value={settings.intensity} onChange={(intensity) => onSettingsChange({ intensity })} />
-        <RangeControl id="detail" label="Detail" value={settings.detail} onChange={(detail) => onSettingsChange({ detail })} />
+        <RangeControl id="intensity" label={isFilmGrain ? "Amount" : "Intensity"} value={settings.intensity} onChange={(intensity) => onSettingsChange({ intensity })} />
+        <RangeControl id="detail" label={isFilmGrain ? "Texture strength" : "Detail"} value={settings.detail} onChange={(detail) => onSettingsChange({ detail })} />
         <RangeControl id="contrast" label="Contrast" value={settings.contrast} onChange={(contrast) => onSettingsChange({ contrast })} />
-        <RangeControl id="scale" label="Scale" value={settings.scale} min={4} max={32} suffix=" px" onChange={(scale) => onSettingsChange({ scale })} />
+        <RangeControl id="scale" label={isFilmGrain ? "Grain size" : "Scale"} value={settings.scale} min={4} max={32} suffix={isFilmGrain ? "" : " px"} onChange={(scale) => onSettingsChange({ scale })} />
       </div>
 
-      <fieldset className="palette-fieldset">
-        <legend>Ink palette</legend>
-        <div className="palette-grid">
-          {(Object.entries(PALETTES) as [PaletteId, (typeof PALETTES)[PaletteId]][]).map(([id, palette]) => (
-            <button
-              type="button"
-              key={id}
-              className={settings.palette === id ? "is-active" : ""}
-              aria-label={`Use ${palette.label} palette`}
-              aria-pressed={settings.palette === id}
-              onClick={() => onSettingsChange({ palette: id })}
-              title={palette.label}
-            >
-              <span style={{ background: `rgb(${palette.paper.join(" ")})` }} />
-              <span style={{ background: `rgb(${palette.ink.join(" ")})` }} />
-              <small>{palette.label}</small>
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      {isFilmGrain ? (
+        <p className="palette-note">Silver Grain keeps your image's original colours.</p>
+      ) : (
+        <fieldset className="palette-fieldset">
+          <legend>Ink palette</legend>
+          <div className="palette-grid">
+            {(Object.entries(PALETTES) as [PaletteId, (typeof PALETTES)[PaletteId]][]).map(([id, palette]) => (
+              <button
+                type="button"
+                key={id}
+                className={settings.palette === id ? "is-active" : ""}
+                aria-label={`Use ${palette.label} palette`}
+                aria-pressed={settings.palette === id}
+                onClick={() => onSettingsChange({ palette: id })}
+                title={palette.label}
+              >
+                <span style={{ background: `rgb(${palette.paper.join(" ")})` }} />
+                <span style={{ background: `rgb(${palette.ink.join(" ")})` }} />
+                <small>{palette.label}</small>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div className="inspector-actions">
         <button className="secondary-button" type="button" onClick={onReset}>

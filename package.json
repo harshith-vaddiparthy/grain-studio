@@ -1,6 +1,8 @@
 {
   "name": "grain-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "author": "Harshith Vaddiparthy",
+  "homepage": "https://grainstudio.harshith.com/",
   "private": true,
   "description": "An open-source, local-first image texture studio.",
   "license": "MIT",

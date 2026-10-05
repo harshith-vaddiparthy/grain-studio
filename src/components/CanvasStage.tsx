@@ -1,4 +1,4 @@
-import { ImageSquare, UploadSimple } from "@phosphor-icons/react";
+import { ImageSquare, SquaresFour, UploadSimple } from "@phosphor-icons/react";
 import type { RefObject } from "react";
 import type { ImageSource, RenderStatus, TextureDefinition } from "../types";
 
@@ -16,6 +16,7 @@ export function CanvasStage({
   dragActive,
   onChoose,
   onCompareChange,
+  onCompareToggle,
 }: {
   source: ImageSource | null;
   texture: TextureDefinition;
@@ -30,6 +31,7 @@ export function CanvasStage({
   dragActive: boolean;
   onChoose: () => void;
   onCompareChange: (value: number) => void;
+  onCompareToggle?: (enabled: boolean) => void;
 }) {
   const originalWidth = revealOriginal ? 100 : compareEnabled ? compare : 0;
 
@@ -66,6 +68,14 @@ export function CanvasStage({
               </>
             ) : null}
             {source.isSample ? <span className="sample-badge">Sample</span> : null}
+          </div>
+          <div className="stage-image-actions" role="group" aria-label="Image actions">
+            <button type="button" onClick={onChoose}>
+              <UploadSimple size={16} aria-hidden="true" /> Replace image
+            </button>
+            <button type="button" aria-pressed={compareEnabled} disabled={!onCompareToggle} onClick={() => onCompareToggle?.(!compareEnabled)}>
+              <SquaresFour size={16} aria-hidden="true" /> Compare
+            </button>
           </div>
           <p className="stage-hint">Hold Space for original. Drop or paste an image anywhere.</p>
         </div>

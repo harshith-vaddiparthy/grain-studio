@@ -10,9 +10,11 @@ import {
 } from "./filters";
 
 describe("texture catalog", () => {
-  it("ships a complete 25-effect catalog", () => {
-    expect(TEXTURES).toHaveLength(25);
+  it("ships a complete 26-effect catalog", () => {
+    expect(TEXTURES).toHaveLength(26);
     expect(new Set(TEXTURES.map((texture) => texture.id)).size).toBe(TEXTURES.length);
+    expect(TEXTURES[TEXTURES.length - 1]?.id).toBe("film-grain");
+    expect(TEXTURE_BY_ID["film-grain"].defaults).toEqual({ detail: 60, intensity: 65, contrast: 50, scale: 8, palette: "source", seed: 17 });
   });
 
   it("keeps every setting in its supported range", () => {
@@ -57,6 +59,8 @@ describe("progressive disclosure", () => {
   it("opens on a small curated set instead of the whole catalog", () => {
     expect(STARTER_TEXTURE_IDS).toHaveLength(6);
     expect(new Set(STARTER_TEXTURE_IDS).size).toBe(STARTER_TEXTURE_IDS.length);
+    expect(STARTER_TEXTURE_IDS).toContain("film-grain");
+    expect(STARTER_TEXTURE_IDS).not.toContain("pixel-crush");
     expect(STARTER_TEXTURES.every(Boolean)).toBe(true);
     expect(STARTER_TEXTURES.length).toBeLessThan(TEXTURES.length / 3);
   });

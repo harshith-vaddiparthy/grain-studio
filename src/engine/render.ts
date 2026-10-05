@@ -14,6 +14,7 @@ const BAYER_8 = [
 ] as const;
 
 const PIXEL_TEXTURES = new Set<TextureId>([
+  "film-grain",
   "riso-print",
   "bayer-grain",
   "cobalt-dust",
@@ -263,6 +264,63 @@ function processBlueprint(source: Uint8ClampedArray, width: number, height: numb
   return output;
 }
 
+function filmHash(x: number, y: number, seed: number) {
+  let value = Math.imul(x, 0x1f123bb5) ^ Math.imul(y, 0x5f356495) ^ Math.imul(seed | 0, 0x27d4eb2d);
+  value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
+  value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
+  return (value ^ (value >>> 16)) >>> 24;
+}
+
+function filmGrid(width: number, height: number, size: number, seed: number) {
+  const columns = Math.ceil(width / size) + 1;
+  const rows = Math.ceil(height / size) + 1;
+  const values = new Uint8Array(columns * rows);
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < columns; x += 1) values[y * columns + x] = filmHash(x, y, seed);
+  }
+  return { columns, values };
+}
+
+function filmGridNoise(grid: ReturnType<typeof filmGrid>, x: number, y: number, size: number) {
+  const gridX = x / size;
+  const gridY = y / size;
+  const cellX = Math.floor(gridX);
+  const cellY = Math.floor(gridY);
+  const dx = gridX - cellX;
+  const dy = gridY - cellY;
+  const smoothX = dx * dx * (3 - 2 * dx);
+  const smoothY = dy * dy * (3 - 2 * dy);
+  const index = cellY * grid.columns + cellX;
+  const top = mix(grid.values[index] ?? 0, grid.values[index + 1] ?? 0, smoothX);
+  const bottom = mix(grid.values[index + grid.columns] ?? 0, grid.values[index + grid.columns + 1] ?? 0, smoothX);
+  return (mix(top, bottom, smoothY) - 127.5) / 127.5;
+}
+
+function processFilmGrain(source: Uint8ClampedArray, width: number, height: number, settings: TextureSettings) {
+  const output = new Uint8ClampedArray(source.length);
+  const resolutionScale = Math.max(width, height) / 1280;
+  const size = Math.max(0.05, settings.scale * resolutionScale);
+  const fineSize = Math.max(0.016, size / 3);
+  const coarse = filmGrid(width, height, size, settings.seed);
+  const fine = filmGrid(width, height, fineSize, settings.seed ^ 0x9e3779b9);
+  const detail = Math.max(0, Math.min(1, settings.detail / 100));
+  const fineShare = detail * 0.75;
+  const strength = 8 + detail * 28;
+  // The shared renderer applies intensity when it blends this output.
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = (y * width + x) * 4;
+      const noise = filmGridNoise(coarse, x + 0.5, y + 0.5, size) * (1 - fineShare)
+        + filmGridNoise(fine, x + 0.5, y + 0.5, fineSize) * fineShare;
+      const grain = Math.round(noise * strength);
+      const color = rgb(source, index);
+      const base = settings.contrast === 50 ? color : contrastRgb(color, settings.contrast);
+      write(output, index, [clamp(base[0] + grain), clamp(base[1] + grain), clamp(base[2] + grain)], source[index + 3]);
+    }
+  }
+  return output;
+}
+
 export function applyPixelTexture(
   source: Uint8ClampedArray,
   width: number,
@@ -270,6 +328,7 @@ export function applyPixelTexture(
   id: TextureId,
   settings: TextureSettings,
 ) {
+  if (id === "film-grain") return processFilmGrain(source, width, height, settings);
   if (id === "riso-print") return processRiso(source, width, height, settings);
   if (id === "bayer-grain") return processBayer(source, width, height, settings);
   if (id.endsWith("-dust")) return processDust(source, width, height, id, settings);
@@ -281,10 +340,16 @@ export function applyPixelTexture(
 }
 
 function createCanvas(width: number, height: number) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  return canvas;
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+  if (typeof OffscreenCanvas !== "undefined") {
+    return new OffscreenCanvas(width, height) as unknown as HTMLCanvasElement;
+  }
+  throw new Error("Canvas rendering is unavailable in this browser.");
 }
 
 function sampleCell(data: Uint8ClampedArray, width: number, height: number, x: number, y: number, cellWidth: number, cellHeight = cellWidth) {
@@ -532,6 +597,8 @@ function paletteIdPaper(paletteId: PaletteId): RGB {
   return PALETTES[paletteId].paper;
 }
 
+export type RenderOptions = { preserveTransparency?: boolean };
+
 export function renderTexture(
   source: CanvasImageSource,
   target: HTMLCanvasElement,
@@ -539,45 +606,94 @@ export function renderTexture(
   settings: TextureSettings,
   width: number,
   height: number,
+  options: RenderOptions = {},
 ) {
   const safeWidth = Math.max(1, Math.round(width));
   const safeHeight = Math.max(1, Math.round(height));
-  target.width = safeWidth;
-  target.height = safeHeight;
-  const output = target.getContext("2d", { alpha: false });
-  if (!output) throw new Error("Canvas rendering is unavailable in this browser.");
+  const preserveTransparency = options.preserveTransparency !== false;
 
   const base = createCanvas(safeWidth, safeHeight);
-  const baseContext = base.getContext("2d", { alpha: false });
+  const baseContext = base.getContext("2d", { alpha: true });
   if (!baseContext) throw new Error("Canvas rendering is unavailable in this browser.");
   baseContext.imageSmoothingEnabled = true;
   baseContext.imageSmoothingQuality = "high";
   baseContext.drawImage(source, 0, 0, safeWidth, safeHeight);
-  const sourceData = baseContext.getImageData(0, 0, safeWidth, safeHeight);
+
+  let originalData: ImageData | null = null;
+  let hasTransparency = false;
+  if (preserveTransparency) {
+    originalData = baseContext.getImageData(0, 0, safeWidth, safeHeight);
+    for (let index = 3; index < originalData.data.length; index += 4) {
+      if (originalData.data[index] < 255) {
+        hasTransparency = true;
+        break;
+      }
+    }
+  }
+
+  if (!preserveTransparency || hasTransparency) {
+    baseContext.globalCompositeOperation = "destination-over";
+    baseContext.fillStyle = "#ffffff";
+    baseContext.fillRect(0, 0, safeWidth, safeHeight);
+    baseContext.globalCompositeOperation = "source-over";
+  }
+  const sourceData = !preserveTransparency || hasTransparency
+    ? baseContext.getImageData(0, 0, safeWidth, safeHeight)
+    : originalData!;
+  // Neutral grain belongs to the original colour channels, not the white
+  // matte used to sample the stylised print and pattern effects.
+  const filmPixels = id === "film-grain" && hasTransparency && originalData
+    ? applyPixelTexture(originalData.data, safeWidth, safeHeight, id, settings)
+    : null;
 
   const effect = createCanvas(safeWidth, safeHeight);
   if (PIXEL_TEXTURES.has(id)) {
     const effectContext = effect.getContext("2d", { alpha: false });
     if (!effectContext) throw new Error("Canvas rendering is unavailable in this browser.");
-    const transformed = applyPixelTexture(sourceData.data, safeWidth, safeHeight, id, settings);
+    const transformed = filmPixels ?? applyPixelTexture(sourceData.data, safeWidth, safeHeight, id, settings);
     effectContext.putImageData(new ImageData(transformed, safeWidth, safeHeight), 0, 0);
   } else {
     drawPatternTexture(effect, sourceData, id, settings);
   }
 
+  target.width = safeWidth;
+  target.height = safeHeight;
+  const output = target.getContext("2d", { alpha: true });
+  if (!output) throw new Error("Canvas rendering is unavailable in this browser.");
   output.clearRect(0, 0, safeWidth, safeHeight);
+  output.fillStyle = "#ffffff";
+  output.fillRect(0, 0, safeWidth, safeHeight);
   output.drawImage(base, 0, 0);
-  output.globalAlpha = clamp(settings.intensity, 0, 100) / 100;
+  const intensity = clamp(settings.intensity, 0, 100) / 100;
+  output.globalAlpha = intensity;
   output.drawImage(effect, 0, 0);
   output.globalAlpha = 1;
+
+  if (hasTransparency && originalData) {
+    const result = output.getImageData(0, 0, safeWidth, safeHeight);
+    const pixels = result.data;
+    const original = originalData.data;
+    const whiteBase = sourceData.data;
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (original[index + 3] === 255) continue;
+      for (let channel = 0; channel < 3; channel += 1) {
+        pixels[index + channel] = filmPixels
+          ? mix(original[index + channel], filmPixels[index + channel], intensity)
+          : clamp(pixels[index + channel] + (original[index + channel] - whiteBase[index + channel]) * (1 - intensity));
+      }
+      pixels[index + 3] = original[index + 3];
+    }
+    output.putImageData(result, 0, 0);
+  }
 }
 
 export function drawOriginal(source: CanvasImageSource, target: HTMLCanvasElement, width: number, height: number) {
   target.width = Math.max(1, Math.round(width));
   target.height = Math.max(1, Math.round(height));
-  const context = target.getContext("2d", { alpha: false });
+  const context = target.getContext("2d", { alpha: true });
   if (!context) throw new Error("Canvas rendering is unavailable in this browser.");
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
+  context.clearRect(0, 0, target.width, target.height);
   context.drawImage(source, 0, 0, target.width, target.height);
 }
